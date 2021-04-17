@@ -41,9 +41,24 @@
 
 #endif
 
+#define FUJITSU_SCROLL_MAX_POSITION 0x0FFF
+
 #define FUJITSU_SCROLL_ID           0x43
 #define FUJITSU_SCROLL_WHEEL_ID     04
 #define FUJITSU_SCROLL_SENSOR_ID    00
+
+#define FJS_LOG_PACKETS                0
+#define FJS_WEIGHT_THRESHOLD           0x08
+#define FJS_POSITION_CHANGE_THRESHOLD  0x100
+
+#define FJS_MODE_ENABLE            0x80
+#define FJS_MODE_PRESS_ONLY        0x20  // if set, only the press bit is
+                                         // reported - no weight or position
+
+#define FJS_INIT_MODE              (FJS_MODE_ENABLE)
+
+#define MAX_POSITION_CHANGE  (FUJITSU_SCROLL_MAX_POSITION / 2)
+
 
 enum fujitsu_scroll_device_type {
   FUJITSU_SCROLL_WHEEL,
@@ -51,9 +66,9 @@ enum fujitsu_scroll_device_type {
 };
 
 /*
- * A structure to describe the state of the touchpad hardware (buttons and pad)
+ * A structure for data extracted from a packet
  */
-struct fujitsu_scroll_hw_state {
+struct fujitsu_scroll_packet_data {
   unsigned int position;
   unsigned int weight;
   unsigned int pressed:1;
@@ -61,8 +76,9 @@ struct fujitsu_scroll_hw_state {
 
 struct fujitsu_scroll_data {
   enum fujitsu_scroll_device_type type;
-  //	u8 mode;				/* current mode byte */
-  //	int scroll;
+  unsigned int last_event_position;
+  unsigned int finger_down:1;
+  bool pressed;
 };
 
 void fujitsu_scroll_module_init(void);

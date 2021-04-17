@@ -59,26 +59,6 @@ static const struct dmi_system_id present_dmi_table[] = {
  *	Stuff we need even when we do not want native Fujitsu Scroll support
  ****************************************************************************/
 
-/*
- * Set the Fujitsu scroll mode byte by special commands
- */
-static int fujitsu_scroll_mode_cmd(struct psmouse *psmouse, u8 mode)
-{
-#if 0  
-	u8 param[1];
-	int error;
-	psmouse_info(psmouse, "Setting mode: %02x", mode);
-	error = ps2_sliced_command(&psmouse->ps2dev, mode);
-	if (error)
-		return error;
-
-	param[0] = SYN_PS_SET_MODE2;
-	error = ps2_command(&psmouse->ps2dev, param, PSMOUSE_CMD_SETRATE);
-	if (error)
-		return error;
-#endif
-	return 0;
-}
 
 int fujitsu_scroll_detect(struct psmouse *psmouse, bool set_properties)
 {
@@ -136,36 +116,23 @@ void fujitsu_scroll_init_sequence(struct psmouse *psmouse) {
   struct ps2dev *ps2dev = &psmouse->ps2dev;
   u8 param[4] = { 0 };
   int error;
+  int mode = 0xC4;
   psmouse_info(psmouse, "fujitsu_scroll_init_sequence");
 
   /*
    * This is the magic sequence that has been observed to
-   * make both scroll devices output data.  We should see
-   * if it can't be pared down.
+   * make both scroll devices output data.
    */
-  error = ps2_sliced_command(ps2dev, 0x00);
-  ps2_command(ps2dev, param, PSMOUSE_CMD_GETINFO);
-  error = ps2_sliced_command(ps2dev, 0x03);
-  ps2_command(ps2dev, param, PSMOUSE_CMD_GETINFO);
-  error = ps2_sliced_command(ps2dev, 0x0a);
-  ps2_command(ps2dev, param, PSMOUSE_CMD_GETINFO);
-  error = ps2_sliced_command(ps2dev, 0x02);
-  ps2_command(ps2dev, param, PSMOUSE_CMD_GETINFO);
-  error = ps2_sliced_command(ps2dev, 0x08);
-  ps2_command(ps2dev, param, PSMOUSE_CMD_GETINFO);
-  error = ps2_sliced_command(ps2dev, 0xc4);
-  
-  param[0] = 0x14;
-  ps2_command(ps2dev, param, PSMOUSE_CMD_SETRATE);
-  error = ps2_sliced_command(ps2dev, 0xc4);
-  ps2_command(ps2dev, param, PSMOUSE_CMD_SETRATE);
-  
+  mode = FJS_INIT_MODE;
+  error = ps2_sliced_command(ps2dev, mode);
+  param[0] = 0x14; // 20; other values don't work
+  ps2_command(ps2dev, param, PSMOUSE_CMD_SETRATE);  
 }
 
 void fujitsu_scroll_reset(struct psmouse *psmouse)
 {
 	/* reset touchpad back to relative mode, gestures enabled */
-	fujitsu_scroll_mode_cmd(psmouse, 0);
+  //	fujitsu_scroll_mode_cmd(psmouse, 0);
 }
 
 #if defined(CONFIG_MOUSE_PS2_FUJITSU_SCROLL)
@@ -174,13 +141,24 @@ void fujitsu_scroll_reset(struct psmouse *psmouse)
 static int fujitsu_scroll_query_hardware(struct psmouse *psmouse)
 {
     struct ps2dev *ps2dev = &psmouse->ps2dev;
+    struct fujitsu_scroll_data *priv = psmouse->private; 
   u8 i;
   u8 param[4];
   //	int error;
 
 	psmouse_info(psmouse, "fujitsu_scroll_query_hardware");
 
-	for (i = 0; i < 16; i++) {
+	ps2_sliced_command(ps2dev, 0);
+	ps2_command(ps2dev, param, PSMOUSE_CMD_GETINFO);
+	psmouse_info(psmouse, "Parameter 00 : %02x %02x %02x",
+		     param[0], param[1], param[2]);
+	if (param[0] == FUJITSU_SCROLL_WHEEL_ID) {
+	  priv->type = FUJITSU_SCROLL_WHEEL;
+	} else {
+	  priv->type = FUJITSU_SCROLL_SENSOR;
+	}
+	
+	for (i = 1; i < 16; i++) {
 	  ps2_sliced_command(ps2dev, i);
 	  ps2_command(ps2dev, param, PSMOUSE_CMD_GETINFO);
 	  psmouse_info(psmouse, "Parameter %02x : %02x %02x %02x",
@@ -204,8 +182,11 @@ static int fujitsu_scroll_query_hardware(struct psmouse *psmouse)
 static void fujitsu_scroll_set_rate(struct psmouse *psmouse, unsigned int rate)
 {
   //	struct fujitsu_scroll_data *priv = psmouse->private;
-
-	psmouse_info(psmouse, "fujitsu_scroll_set_rate: %d.  Ignoring.", rate);
+    struct ps2dev *ps2dev = &psmouse->ps2dev;
+    u8 param[4];
+    
+    psmouse_info(psmouse, "fujitsu_scroll_set_rate: %d.", rate);
+    /*    
 	if (rate >= 80) {
 	  //		priv->mode |= SYN_BIT_HIGH_RATE;
 		psmouse->rate = 80;
@@ -213,8 +194,11 @@ static void fujitsu_scroll_set_rate(struct psmouse *psmouse, unsigned int rate)
 	  //		priv->mode &= ~SYN_BIT_HIGH_RATE;
 		psmouse->rate = 40;
 	}
-
-	//	fujitsu_scroll_mode_cmd(psmouse, priv->mode);
+    */	
+	psmouse->rate = rate;
+	// Standard rates: 10, 20, 40, 60, 80, 100, 200 
+	param[0] = rate;
+	ps2_command(ps2dev, param, PSMOUSE_CMD_SETRATE);
 }
 
 
@@ -229,10 +213,14 @@ static void fujitsu_scroll_set_rate(struct psmouse *psmouse, unsigned int rate)
 static void fujitsu_scroll_process_packet(struct psmouse *psmouse)
 {
 	struct input_dev *dev = psmouse->dev;
-	//	struct fujitsu_scroll_data *priv = psmouse->private;
-	//	struct fujitsu_scroll_device_info *info = &priv->info;
-	struct fujitsu_scroll_hw_state hw;
+	struct fujitsu_scroll_data *priv = psmouse->private;
 
+	unsigned int weight;
+	unsigned int position;
+	int movement;
+	bool pressed;
+
+#if FJS_LOG_PACKETS
 	psmouse_info(psmouse, "%s: %02x|%02x/%02x/%02x %02x/%02x/%02x",
 		     psmouse->name,
 		     psmouse->packet[0] & 0xC0,
@@ -240,14 +228,59 @@ static void fujitsu_scroll_process_packet(struct psmouse *psmouse)
 		     psmouse->packet[1], psmouse->packet[2],
 		     psmouse->packet[3], psmouse->packet[4],
 		     psmouse->packet[5]);
-
-	hw.position = ((psmouse->packet[1] & 0x0f) << 8) +
+#endif
+	
+	position = ((psmouse->packet[1] & 0x0f) << 8) +
 	  psmouse->packet[2];
-	hw.weight = psmouse->packet[0] & 0x3f;
-	hw.pressed = psmouse->packet[4] >> 7;
-	/*
-	 * TODO: Something interesting with hw
-	 */
+	weight = psmouse->packet[0] & 0x3f;
+	pressed = (00 != psmouse->packet[4]);
+
+	if (weight >= FJS_WEIGHT_THRESHOLD) {
+	  if (!priv->finger_down) {
+	    psmouse_info(psmouse, "FINGER TOUCH");
+	    priv->finger_down = 1;
+	    priv->last_event_position = position;
+	  } else {
+	    movement = position - priv->last_event_position;
+	    if (priv->type == FUJITSU_SCROLL_WHEEL) {
+	      // handle rolling over 0
+	      if (movement > MAX_POSITION_CHANGE) {
+		movement =  -((FUJITSU_SCROLL_MAX_POSITION - position) +
+			      priv->last_event_position);
+	      } else if (movement < -MAX_POSITION_CHANGE) {
+		movement += FUJITSU_SCROLL_MAX_POSITION;
+	      }
+	    } else {
+	      // scroll sensor
+	      movement = -movement;
+	    }
+
+	    if (movement > FJS_POSITION_CHANGE_THRESHOLD) {
+	      psmouse_info(psmouse, "SCROLL DOWN");
+	      priv->last_event_position = position;
+	    } else if (movement < -FJS_POSITION_CHANGE_THRESHOLD) {
+	      psmouse_info(psmouse, "SCROLL UP");
+	      priv->last_event_position = position;
+	    }
+	  }
+	}
+	
+	else if (1 == priv->finger_down) {
+	  psmouse_info(psmouse, "FINGER LIFT");
+	  priv->finger_down = 0;
+	}
+
+
+	// Not working at the moment
+	if (pressed != priv->pressed) {
+	  if (pressed) {
+	    psmouse_info(psmouse, "BUTTON PRESS 0x%02x", psmouse->packet[4]);
+	  } else {
+	    psmouse_info(psmouse, "BUTTON RELEASE");
+	  }
+	  priv->pressed = pressed;
+	}
+	  
 	input_sync(dev);
 }
 
@@ -261,6 +294,7 @@ static psmouse_ret_t fujitsu_scroll_process_byte(struct psmouse *psmouse)
 
 	return PSMOUSE_GOOD_DATA;
 }
+
 
 /*****************************************************************************
  *	Driver initialization/cleanup functions
