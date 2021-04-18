@@ -58,8 +58,8 @@ this way, but the individual bits seem to have different meanings.)
 
 Only two bits of the mode byte have been found to be significant.
 
-BIT 7 (0x80) - set 1 to enable data packets, 0 to disable
-BIT 5 (0x20) - set 1 to inhibit 'position' and 'capacitance' data
+* BIT 7 (0x80) - set 1 to enable data packets, 0 to disable
+* BIT 5 (0x20) - set 1 to inhibit 'position' and 'capacitance' data
 
 It's not obvious that any of the other bits make any difference.
 
@@ -67,31 +67,30 @@ Data packets are written as 6 bytes, again loosely mirroring the Synaptics
 6 byte protocol and they will be accepted by code doing casual framing
 validation of such.  Trial and error has produced the following definition:
 
-Byte 0:
-     bits 7-6: mask 0xc0 - Always set to '10' for framing
-     bits 5-0: mask 0x3f - Capacitance value; how much finger is being sensed
-Byte 1:
-     bits 7-4: mask 0xf0 - Always observed to be 0
-     bits 3-0: mask 0x0f - the top 4 bits of the position value
-Byte 2:
-     bits 7-0: mask 0xff - the lower 8 bits of the position value
-Byte 3:
-     bits 7-6: mask 0xc0 - Always set to '11' for framing
-     bits 5-0: mask 0x3f - Always observed to be '000000'
-Byte 4:
-     bits 7-5: mask 0xe0 - Always observed to be '000'
-     bit    4: mask 0x10 - Set if a specific region on the sensor is touched
-     bits 3-0: mask 0x0f - Always observed to be '0000'
-
-Byte 5:
-     bits 7-0: mask 0xff - Always observed to be '00000000'
+* Byte 0:
+  *   bits 7-6: mask 0xc0 - Always set to '10' for framing
+  *   bits 5-0: mask 0x3f - Capacitance value; how much finger is being sensed
+* Byte 1:
+  *   bits 7-4: mask 0xf0 - Always observed to be 0
+  *   bits 3-0: mask 0x0f - the top 4 bits of the position value
+* Byte 2:
+  *   bits 7-0: mask 0xff - the lower 8 bits of the position value
+* Byte 3:
+  *   bits 7-6: mask 0xc0 - Always set to '11' for framing
+  *   bits 5-0: mask 0x3f - Always observed to be '000000'
+* Byte 4:
+  *   bits 7-5: mask 0xe0 - Always observed to be '000'
+  *   bit    4: mask 0x10 - Set if a specific region on the sensor is touched
+  *   bits 3-0: mask 0x0f - Always observed to be '0000'
+* Byte 5:
+  *   bits 7-0: mask 0xff - Always observed to be '00000000'
 
 It's certainly possible some of those 0 fields could hold meaning if the
 sensor devices are put into some currently unknown configuration.  Or they
 might indicate hardware faults that simply have never been encountered.
 There is simply zero documentation.
 
-Capacitance: how much finger is being sensed.  This value indicates whether
+**Capacitance**: how much finger is being sensed.  This value indicates whether
 a sensor is being touched or not.  A few times I've seen a sensor get stuck
 reporting a very low, but not 0, value even after my finger has been removed,
 so it's probably best to apply a lower bounds filter just in case.  I have
@@ -99,7 +98,7 @@ not found any immediately intuitive ways that the end user can adjust this
 value as a means of providing more input (say, light touch versus heavy
 touch).
 
-Position: This value ranges from 0x000 to 0xfff.  On the Scroll Wheel, it
+**Position**: This value ranges from 0x000 to 0xfff.  On the Scroll Wheel, it
 indicates the angle of the circle that the Wheel is being touched, with 0x000
 being at the top (12 o'clock), and increasing clockwise to 0xfff (just shy of
 12 o'clock).  On the Scroll Sensor, 0x000 is at the right end of the Sensor,
@@ -107,7 +106,7 @@ and 0xfff is at the left end.  In practice, the lower 8 bits are probably
 too noisy to be of much use and the upper 4 bits will suffice, which divides
 each sensor into 16 parts.
 
-Byte 4, bit 4: This was unexpected.  Each sensor has a region which, while
+**Byte 4, bit 4**: This was unexpected.  Each sensor has a region which, while
 touched, will cause this bit to be set.  If bit 5 in the mode byte is set,
 this is the only bit which will change/generate data packets.  For the
 Scroll Wheel, the sensitive region is dead center.  In practice, I'm not
