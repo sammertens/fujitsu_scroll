@@ -6,20 +6,6 @@
  *     Modified the original synaptics.c source to support the Fujitsu
  *     scroll devices in the Fujitsu Lifebook T901 laptop
  *
- *   2003 Dmitry Torokhov <dtor@mail.ru>
- *     Added support for pass-through port. Special thanks to Peter Berg Larsen
- *     for explaining various Synaptics quirks.
- *
- *   2003 Peter Osterlund <petero2@telia.com>
- *     Ported to 2.5 input device infrastructure.
- *
- *   Copyright (C) 2001 Stefan Gmeiner <riddlebox@freesurf.ch>
- *     start merging tpconfig and gpm code to a xfree-input module
- *     adding some changes and extensions (ex. 3rd and 4th button)
- *
- *   Copyright (c) 1997 C. Scott Ananian <cananian@alumni.priceton.edu>
- *   Copyright (c) 1998-2000 Bruce Kalk <kall@compass.com>
- *     code for the special synaptics commands (from the tpconfig-source)
  *
  * Trademarks are the property of their respective owners.
  */
@@ -38,6 +24,7 @@
 
 
 #ifdef CONFIG_MOUSE_PS2_FUJITSU_SCROLL
+
 static const struct dmi_system_id present_dmi_table[] = {
 #if defined(CONFIG_DMI) && defined(CONFIG_X86)
 	{
@@ -53,24 +40,20 @@ static const struct dmi_system_id present_dmi_table[] = {
 #endif
 	{ }
 };
-#endif
-
-/*****************************************************************************
- *	Stuff we need even when we do not want native Fujitsu Scroll support
- ****************************************************************************/
 
 
 int fujitsu_scroll_detect(struct psmouse *psmouse, bool set_properties)
 {
 	struct ps2dev *ps2dev = &psmouse->ps2dev;
 	u8 param[4] = { 0 };
-	
-#ifdef CONFIG_MOUSE_PS2_FUJITSU_SCROLL	
+
+#if defined(CONFIG_DMI) && defined(CONFIG_X86)	
 	/*
          * DMI check.  We know these devices exist in the
 	 * T901; maybe other laptops.  Don't want the probe to
 	 * mess with other systems. T901 does not have a PS/2 port
-	 * so no worries there.
+	 * so there will be no arbitrary devices this probe might
+	 * confuse.
 	 */
 	if (!dmi_check_system(present_dmi_table)) {
 	  return -ENODEV;
@@ -108,7 +91,7 @@ int fujitsu_scroll_detect(struct psmouse *psmouse, bool set_properties)
 	      psmouse->name = "Unknown";
 	    }
 #if FJS_SEND_EVENTS	    
-		__set_bit(BTN_EXTRA, psmouse->dev->keybit);
+		__set_bit(BTN_MIDDLE, psmouse->dev->keybit);
 		__set_bit(REL_WHEEL, psmouse->dev->relbit);
 #endif
 	}
@@ -140,14 +123,14 @@ void fujitsu_scroll_reset(struct psmouse *psmouse)
   //	fujitsu_scroll_mode_cmd(psmouse, 0);
 }
 
-#if defined(CONFIG_MOUSE_PS2_FUJITSU_SCROLL)
 
-
-static int fujitsu_scroll_query_hardware(struct psmouse *psmouse)
+int fujitsu_scroll_query_hardware(struct psmouse *psmouse)
 {
     struct ps2dev *ps2dev = &psmouse->ps2dev;
-    struct fujitsu_scroll_data *priv = psmouse->private; 
+    struct fujitsu_scroll_data *priv = psmouse->private;
+#if FJS_LOG_GETINFO    
   u8 i;
+#endif  
   u8 param[4];
   //	int error;
 
@@ -155,14 +138,19 @@ static int fujitsu_scroll_query_hardware(struct psmouse *psmouse)
 
 	ps2_sliced_command(ps2dev, 0);
 	ps2_command(ps2dev, param, PSMOUSE_CMD_GETINFO);
+	
+#if FJS_LOG_GETINFO	
 	psmouse_info(psmouse, "Parameter 00 : %02x %02x %02x",
 		     param[0], param[1], param[2]);
+#endif
+	
 	if (param[0] == FUJITSU_SCROLL_WHEEL_ID) {
 	  priv->type = FUJITSU_SCROLL_WHEEL;
 	} else {
 	  priv->type = FUJITSU_SCROLL_SENSOR;
 	}
 	
+#if FJS_LOG_GETINFO	
 	for (i = 1; i < 16; i++) {
 	  ps2_sliced_command(ps2dev, i);
 	  ps2_command(ps2dev, param, PSMOUSE_CMD_GETINFO);
@@ -171,13 +159,10 @@ static int fujitsu_scroll_query_hardware(struct psmouse *psmouse)
 	}
 	// Not going to save any of that information unless/until we
 	// can decipher what it means.
+#endif
 	
     return 0;
 }
-
-#endif /* CONFIG_MOUSE_PS2_FUJITSU_SCROLL */
-
-#ifdef CONFIG_MOUSE_PS2_FUJITSU_SCROLL
 
 
 /*****************************************************************************
@@ -279,7 +264,7 @@ static void fujitsu_scroll_process_packet(struct psmouse *psmouse)
 	}
 	
 #if FJS_SEND_EVENTS	
-	input_report_key(dev, BTN_EXTRA, pressed);
+	input_report_key(dev, BTN_MIDDLE, pressed);
 	
 	input_sync(dev);
 #endif	
@@ -312,34 +297,11 @@ static void fujitsu_scroll_disconnect(struct psmouse *psmouse)
 
 static int fujitsu_scroll_reconnect(struct psmouse *psmouse)
 {
-	int retry = 0;
-	int error = 0;
 	FJS_LOG_FUNCTION(psmouse, "fujitsu_scroll_reconnect");
-	do {
-		psmouse_reset(psmouse);
-		if (retry) {
-			/*
-			 * On some boxes, right after resuming, the touchpad
-			 * needs some time to finish initializing (I assume
-			 * it needs time to calibrate) and start responding
-			 * to Synaptics-specific queries, so let's wait a
-			 * bit.
-			 */
-			ssleep(1);
-		}
-		//		ps2_command(&psmouse->ps2dev, param, PSMOUSE_CMD_GETID);
-		//		error = fujitsu_scroll_detect(psmouse, 0);
-	} while (error && ++retry < 3);
 
+	psmouse_reset(psmouse);
 	fujitsu_scroll_init_sequence(psmouse);
 		
-	if (error)
-		return error;
-
-	if (retry > 1) {
-		psmouse_info(psmouse, "reconnected after %d tries\n", retry);
-	}
-	
 	return 0;
 }
 
@@ -368,17 +330,14 @@ static int fujitsu_scroll_init_ps2(struct psmouse *psmouse)
 	psmouse->cleanup = fujitsu_scroll_reset;
 	/* TODO: see if resync_time needs to be adjusted */
 	psmouse->resync_time = 0;
-#if 0
-        ps2_command(&psmouse->ps2dev, NULL, PSMOUSE_CMD_ENABLE);
 
-	fujitsu_scroll_reconnect(psmouse);
-#else
+
 	fujitsu_scroll_query_hardware(psmouse);
 #if FJS_SEND_EVENTS	
-        input_set_capability(psmouse->dev, EV_KEY, BTN_EXTRA);
+        input_set_capability(psmouse->dev, EV_KEY, BTN_MIDDLE);
 #endif	
 	fujitsu_scroll_init_sequence(psmouse);
-#endif	
+
 	return 0;
 
 	// init_fail:
@@ -387,36 +346,11 @@ static int fujitsu_scroll_init_ps2(struct psmouse *psmouse)
 }
 
 
-#else /* CONFIG_MOUSE_PS2_FUJITSU_SCROLL */
-
-void __init fujitsu_scroll_module_init(void)
-{
-}
-
-static int __maybe_unused
-fujitsu_scroll_setup_ps2(struct psmouse *psmouse)
-{
-  FJS_LOG_FUNCTION(psmouse, "ENOSYS fujitsu_scroll_setup_ps2");
-	return -ENOSYS;
-}
-
-#endif /* CONFIG_MOUSE_PS2_FUJITSU_SCROLL */
-
-#if defined(CONFIG_MOUSE_PS2_FUJITSU_SCROLL)
-
 int fujitsu_scroll_init(struct psmouse *psmouse)
 {
 	FJS_LOG_FUNCTION(psmouse, "fujitsu_scroll_init");	
 	psmouse_reset(psmouse);
 	return fujitsu_scroll_init_ps2(psmouse);
-}
-
-#else /* CONFIG_MOUSE_PS2_FUJITSU_SCROLL */
-
-int fujitsu_scroll_init(struct psmouse *psmouse)
-{
-  FJS_LOG_FUNCTION(psmouse, "ENOSYS fujitsu_scroll_init");
-	return -ENOSYS;
 }
 
 #endif /* CONFIG_MOUSE_PS2_FUJITSU_SCROLL */

@@ -4,7 +4,7 @@
  *
  * Scroll Wheel packets
  *  Bytes 0,1,2:  1 0 c c c c c c  0 0 0 0 a a a a  a a a a a a a a
- *  Bytes 3,4,5:  1 1 0 0 0 0 0 0  p 0 0 0 0 0 0 0  0 0 0 0 0 0 0 0
+ *  Bytes 3,4,5:  1 1 0 0 0 0 0 0  0 0 0 p 0 0 0 0  0 0 0 0 0 0 0 0
  *
  *  c - 6 bits, capacitance, how much capacitance is detected.
  *              Seems to be highest around a ring inside the wheel
@@ -60,6 +60,10 @@
  * FJS_LOG_FUNCTIONS - enable to log function entries
  */
 #define FJS_LOG_FUNCTIONS              0
+/*
+ * FJS_LOG_GETINFO - enable to log the GETINFO data on init
+ */
+#define FJS_LOG_GETINFO               0
 /*
  * FJS_SEND_EVENTS - disable to not actually generate events
  * Note that these events to not align precisely with the hypothetical
