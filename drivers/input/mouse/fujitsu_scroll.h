@@ -48,8 +48,13 @@
 #define FUJITSU_SCROLL_SENSOR_ID    00
 
 #define FJS_LOG_PACKETS                0
+#define FJS_LOG_POSSIBLE_EVENTS        0
+#define FJS_LOG_FUNCTIONS              0
+#define FJS_SEND_EVENTS                1
+
 #define FJS_WEIGHT_THRESHOLD           0x08
 #define FJS_POSITION_CHANGE_THRESHOLD  0x100
+#define FJS_MOVEMENT_BITSHIFT          8
 
 #define FJS_MODE_ENABLE            0x80
 #define FJS_MODE_PRESS_ONLY        0x20  // if set, only the press bit is
@@ -59,6 +64,19 @@
 
 #define MAX_POSITION_CHANGE  (FUJITSU_SCROLL_MAX_POSITION / 2)
 
+#if FJS_LOG_POSSIBLE_EVENTS
+#define FJS_LOG(psmouse, format, ...) \
+  psmouse_info(psmouse, format, ##__VA_ARGS__)
+#else
+#define FJS_LOG(psmouse, format, ...)
+#endif
+
+#if FJS_LOG_FUNCTIONS
+#define FJS_LOG_FUNCTION(psmouse, format, ...) \
+  psmouse_info(psmouse, format, ##__VA_ARGS__)
+#else
+#define FJS_LOG_FUNCTION(psmouse, format, ...)
+#endif
 
 enum fujitsu_scroll_device_type {
   FUJITSU_SCROLL_WHEEL,
