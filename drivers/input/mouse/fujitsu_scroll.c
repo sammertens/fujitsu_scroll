@@ -250,7 +250,8 @@ static void fujitsu_scroll_process_packet(struct psmouse *psmouse)
 	      movement = -movement;
 	    }
 #if FJS_SEND_EVENTS	    
-	    input_report_rel(dev, REL_WHEEL, -(movement >> FJS_MOVEMENT_BITSHIFT));
+	    input_report_rel(dev, REL_WHEEL,
+			     -sign_extend32(movement >> FJS_MOVEMENT_BITSHIFT, 4));
 #endif
 	    
 	    if (movement > FJS_POSITION_CHANGE_THRESHOLD) {

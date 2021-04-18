@@ -47,22 +47,59 @@
 #define FUJITSU_SCROLL_WHEEL_ID     04
 #define FUJITSU_SCROLL_SENSOR_ID    00
 
+/*
+ * FJS_LOG_PACKETS - enable log all incoming packets
+ */
 #define FJS_LOG_PACKETS                0
+/*
+ * FJS_LOG_POSSIBLE_EVENTS - enable to log some hypothetical
+ * events detectable from the data
+ */
 #define FJS_LOG_POSSIBLE_EVENTS        0
+/*
+ * FJS_LOG_FUNCTIONS - enable to log function entries
+ */
 #define FJS_LOG_FUNCTIONS              0
+/*
+ * FJS_SEND_EVENTS - disable to not actually generate events
+ * Note that these events to not align precisely with the hypothetical
+ * events
+ */
 #define FJS_SEND_EVENTS                1
 
+/*
+ * The minimum weight to register an actual finger touch
+ */
 #define FJS_WEIGHT_THRESHOLD           0x08
+
+/*
+ * How much movement should occur to consider it an event (hypothetical)
+ */
 #define FJS_POSITION_CHANGE_THRESHOLD  0x100
+/*
+ * How much the movement value should be bitshifted right
+ */
 #define FJS_MOVEMENT_BITSHIFT          8
 
-#define FJS_MODE_ENABLE            0x80
-#define FJS_MODE_PRESS_ONLY        0x20  // if set, only the press bit is
-                                         // reported - no weight or position
 
+/*
+ * FJS_MODE_ENABLE - This bit must be set in the 'mode' byte in order
+ * for packets to be generated
+ */
+#define FJS_MODE_ENABLE            0x80
+/*
+ * FJS_MODE_PRESS_ONLY - This bit, if set, will suppress all weight and
+ * position data.  Only the 'press' bit will be reported.
+ */
+#define FJS_MODE_PRESS_ONLY        0x20
+
+/*
+ * FJS_INIT_MODE - the mode byte to send upon initialization
+ */
 #define FJS_INIT_MODE              (FJS_MODE_ENABLE)
 
 #define MAX_POSITION_CHANGE  (FUJITSU_SCROLL_MAX_POSITION / 2)
+
 
 #if FJS_LOG_POSSIBLE_EVENTS
 #define FJS_LOG(psmouse, format, ...) \
