@@ -10,8 +10,8 @@ Lifebook T901 on EBay for real cheap.  I wasn't expecting a machine with
 rotating screen or stylus support, but the price was right.  I started poking
 around all the various unexpected features that the laptop had, including
 these odd scrolling areas that didn't seem to do anything in Linux.  The sordid
-details can be found [here](https://www.linuxquestions.org/questions/slackware-14/fujitsu-lifebook-t901-convertible-laptop-tablet-features-missing-on-default-install-4175637572/page2.html#post6235699) and [here on linuxquestions.org](https://www.linuxquestions.org/questions/linux-hardware-18/fujitsu-lifebook-scroll-device-support-4175692959/#post6236179), where I found one or two other folk
-trying to get the most out of the same hardware.
+details can be found [here](https://www.linuxquestions.org/questions/slackware-14/fujitsu-lifebook-t901-convertible-laptop-tablet-features-missing-on-default-install-4175637572)
+and [here on linuxquestions.org](https://www.linuxquestions.org/questions/linux-hardware-18/fujitsu-lifebook-scroll-device-support-4175692959/), where I found one or two other folk trying to get the most out of the same hardware.
 
 ## The Hardware (human interface)
 The T901 sports two features that up until now have not had any Linux support.
