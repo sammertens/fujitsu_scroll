@@ -119,7 +119,7 @@ used (but I haven't scoured all that extensively either).  The most logical
 thing to map it to would be the middle mouse button (since the touchpad only
 has two buttons), but again, usability is questionable.
 
-With the Scroll Wheel, capacitance is the least sensitive in the center of
+With the Scroll Wheel, capacitance is least sensitive in the center of
 the circle, then it increases as the finger moves outward, and then decreases
 again as the outer circumference is reached.  If it were drawn as a map, it'd
 look like a donut.  Because of this, we can't really use capacitance and
@@ -133,10 +133,12 @@ useful in that regard.
 
 ## Current state / TODO
 
-1. Clean up interaction with the Input Subsystem.  What is currently in place
-works as a POC, but there are some behavioral inconsistencies here and
-there that may very well make the whole thing not worth it from a usability
-perspective.  Should be redone.
+1. Small tweaks may still be needed for the Input subsystem.  It currently
+seems usable.  The Wheel does vertical scrolls, the Sensor does
+horizontal scrolls, and they both send the 'EXTRA' mouse button, which very
+few applications seem to care about.  (Accidental presses of the 'MIDDLE'
+button were problematic.)  All of this, plus scrolling sensitivity, can
+be adjusted in fujitsu_scroll.h.
 
 2. Figure out why psmouse frequently decides to reset one or the other device,
 usually in response to a large number of incoming data packets, and if
@@ -158,6 +160,8 @@ very much legacy with very little development going on, so it should be
 possible to drop this code into new kernel versions with little/no changes.
 (Last tested kernel version: 5.12-rc7.)
 
-Y. Maybe create a userspace version of the driver in case X doesn't happen,
-and/or also to support very non-standard means of control.  For instance:
-the Scroll Wheel could be turned into a D-Pad.
+Y. Consider an out-of-kernel module.  This seems much more feasible (I
+imagine kernel maintainers would want more than one or two T901 owners to
+affirm that this code works), and would allow an easy way to provide parameters
+and different behavior modes.  (For example, the Wheel could be a D-Pad.)
+

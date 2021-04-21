@@ -76,14 +76,20 @@
  */
 #define FJS_WEIGHT_THRESHOLD           0x08
 
+#define FJS_WHEEL_AXIS                 REL_WHEEL
+#define FJS_WHEEL_PRESS                BTN_EXTRA
+
+#define FJS_SENSOR_AXIS                REL_HWHEEL
+#define FJS_SENSOR_PRESS               BTN_EXTRA
+
 /*
- * How much movement should occur to consider it an event (hypothetical)
+ * How much movement should occur to consider it an event
  */
 #define FJS_POSITION_CHANGE_THRESHOLD  0x100
 /*
  * How much the movement value should be bitshifted right
  */
-#define FJS_MOVEMENT_BITSHIFT          8
+#define FJS_MOVEMENT_BITSHIFT          6
 
 
 /*
@@ -101,6 +107,7 @@
  * FJS_INIT_MODE - the mode byte to send upon initialization
  */
 #define FJS_INIT_MODE              (FJS_MODE_ENABLE)
+
 
 #define MAX_POSITION_CHANGE  (FUJITSU_SCROLL_MAX_POSITION / 2)
 
@@ -138,6 +145,8 @@ struct fujitsu_scroll_data {
   unsigned int last_event_position;
   unsigned int finger_down:1;
   bool pressed;
+  unsigned int axis;
+  unsigned int button;
 };
 
 void fujitsu_scroll_module_init(void);

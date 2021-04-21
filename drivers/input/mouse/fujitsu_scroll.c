@@ -25,6 +25,26 @@
 
 #ifdef CONFIG_MOUSE_PS2_FUJITSU_SCROLL
 
+int get_wheel_movement(int current_pos, int last_pos) {
+  int movement;
+  int diff;
+  if (current_pos < last_pos) {
+    diff = last_pos - current_pos;
+    if (diff > MAX_POSITION_CHANGE) {
+      movement = (FUJITSU_SCROLL_MAX_POSITION - last_pos) + current_pos;
+    } else {
+      movement = -diff;
+    }
+  } else {
+    movement = current_pos - last_pos;
+    if (movement > MAX_POSITION_CHANGE) {
+      movement = -((FUJITSU_SCROLL_MAX_POSITION - current_pos) + last_pos);
+    }
+  }
+
+  return movement;
+}
+
 static const struct dmi_system_id present_dmi_table[] = {
 #if defined(CONFIG_DMI) && defined(CONFIG_X86)
 	{
@@ -63,6 +83,13 @@ int fujitsu_scroll_detect(struct psmouse *psmouse, bool set_properties)
 	 * If we pass the DMI check, then we know we have
 	 * the scroll devices unless they were somehow yanked
 	 * out of the laptop.
+	 *
+	 * This is the same probe used for Synaptics detection,
+	 * which is always executed even if the Synaptics driver is
+	 * not enabled.  Thus, we know the probe is safe (it won't
+	 * confuse any devices).  Less certain is whether we might
+	 * have any false positive detections.  (The DMI check
+	 * prevents that, provided it's enabled.)
 	 */
 	ps2_command(ps2dev, param, PSMOUSE_CMD_SETRES);
 	ps2_command(ps2dev, param, PSMOUSE_CMD_SETRES);
@@ -83,17 +110,21 @@ int fujitsu_scroll_detect(struct psmouse *psmouse, bool set_properties)
 	    switch (param[0]) {
 	    case FUJITSU_SCROLL_WHEEL_ID:
 	      psmouse->name = "Scroll Wheel";
+#if FJS_SEND_EVENTS	      
+	      __set_bit(FJS_WHEEL_PRESS, psmouse->dev->keybit);
+	      __set_bit(FJS_WHEEL_AXIS, psmouse->dev->relbit);
+#endif	      
 	      break;
 	    case FUJITSU_SCROLL_SENSOR_ID:
 	      psmouse->name = "Scroll Sensor";
+#if FJS_SEND_EVENTS
+	      __set_bit(FJS_SENSOR_PRESS, psmouse->dev->keybit);
+	      __set_bit(FJS_SENSOR_AXIS, psmouse->dev->relbit);
+#endif	      	      
 	      break;
 	    default:
 	      psmouse->name = "Unknown";
 	    }
-#if FJS_SEND_EVENTS	    
-		__set_bit(BTN_MIDDLE, psmouse->dev->keybit);
-		__set_bit(REL_WHEEL, psmouse->dev->relbit);
-#endif
 	}
 
 	return 0;
@@ -146,8 +177,12 @@ int fujitsu_scroll_query_hardware(struct psmouse *psmouse)
 	
 	if (param[0] == FUJITSU_SCROLL_WHEEL_ID) {
 	  priv->type = FUJITSU_SCROLL_WHEEL;
+	  priv->axis = FJS_WHEEL_AXIS;
+	  priv->button = FJS_WHEEL_PRESS;
 	} else {
 	  priv->type = FUJITSU_SCROLL_SENSOR;
+	  priv->axis = FJS_SENSOR_AXIS;
+	  priv->button = FJS_SENSOR_PRESS;
 	}
 	
 #if FJS_LOG_GETINFO	
@@ -215,46 +250,50 @@ static void fujitsu_scroll_process_packet(struct psmouse *psmouse)
 	weight = psmouse->packet[0] & 0x3f;
 	pressed = (00 != psmouse->packet[4]);
 
+#if FJS_SEND_EVENTS	
+	input_report_key(dev, BTN_TOUCH, (weight >= FJS_WEIGHT_THRESHOLD));
+	input_report_abs(dev, ABS_PRESSURE, weight);
+#endif
+	
 	if (weight >= FJS_WEIGHT_THRESHOLD) {
 	  if (!priv->finger_down) {
 	    FJS_LOG(psmouse, "FINGER TOUCH");
 	    priv->finger_down = 1;
 	    priv->last_event_position = position;
 	  } else {
-	    movement = position - priv->last_event_position;
 	    if (priv->type == FUJITSU_SCROLL_WHEEL) {
-	      // handle rolling over 0
-	      if (movement > MAX_POSITION_CHANGE) {
-		movement =  -((FUJITSU_SCROLL_MAX_POSITION - position) +
-			      priv->last_event_position);
-	      } else if (movement < -MAX_POSITION_CHANGE) {
-		movement += FUJITSU_SCROLL_MAX_POSITION;
-	      }
+	      movement = get_wheel_movement(position, priv->last_event_position);
 	    } else {
 	      // scroll sensor
-	      movement = -movement;
+	      movement = position - priv->last_event_position;
 	    }
-#if FJS_SEND_EVENTS	    
-	    input_report_rel(dev, REL_WHEEL,
-			     -sign_extend32(movement >> FJS_MOVEMENT_BITSHIFT, 4));
-#endif
-	    
+
 	    if (movement > FJS_POSITION_CHANGE_THRESHOLD) {
+#if FJS_SEND_EVENTS
+	      input_report_rel(dev, priv->axis, -(movement >> FJS_MOVEMENT_BITSHIFT));
+#endif
 	      FJS_LOG(psmouse, "SCROLL DOWN");
 	      priv->last_event_position = position;
 	    } else if (movement < -FJS_POSITION_CHANGE_THRESHOLD) {
+#if FJS_SEND_EVENTS
+	      input_report_rel(dev, priv->axis, -(movement >> FJS_MOVEMENT_BITSHIFT));
+#endif	      
 	      FJS_LOG(psmouse, "SCROLL UP");
 	      priv->last_event_position = position;
 	    }
 	  }
-	}
-	
-	else if (1 == priv->finger_down) {
+	} else if (1 == priv->finger_down) {
 	  FJS_LOG(psmouse, "FINGER LIFT");
+#if FJS_SEND_EVENTS	    
+	    input_report_key(dev, BTN_TOUCH, 0);
+#endif	    
 	  priv->finger_down = 0;
 	}
 
 	if (pressed != priv->pressed) {
+#if FJS_SEND_EVENTS
+	input_report_key(dev, priv->button, pressed);
+#endif	
 	  if (pressed) {
 	    FJS_LOG(psmouse, "BUTTON PRESS 0x%02x", psmouse->packet[4]);
 	  } else {
@@ -264,8 +303,6 @@ static void fujitsu_scroll_process_packet(struct psmouse *psmouse)
 	}
 	
 #if FJS_SEND_EVENTS	
-	input_report_key(dev, BTN_MIDDLE, pressed);
-	
 	input_sync(dev);
 #endif	
 }
@@ -277,9 +314,10 @@ static psmouse_ret_t fujitsu_scroll_process_byte(struct psmouse *psmouse)
 		fujitsu_scroll_process_packet(psmouse);
 		return PSMOUSE_FULL_PACKET;
 	}
-
+	
 	return PSMOUSE_GOOD_DATA;
 }
+
 
 
 /*****************************************************************************
@@ -331,10 +369,14 @@ static int fujitsu_scroll_init_ps2(struct psmouse *psmouse)
 	/* TODO: see if resync_time needs to be adjusted */
 	psmouse->resync_time = 0;
 
-
 	fujitsu_scroll_query_hardware(psmouse);
 #if FJS_SEND_EVENTS	
-        input_set_capability(psmouse->dev, EV_KEY, BTN_MIDDLE);
+        input_set_capability(psmouse->dev, EV_KEY, priv->button);
+        input_set_capability(psmouse->dev, EV_KEY, BTN_TOUCH);	
+	input_set_capability(psmouse->dev, EV_REL, priv->axis);
+	input_set_capability(psmouse->dev, EV_ABS, ABS_PRESSURE);
+
+	input_set_abs_params(psmouse->dev, ABS_PRESSURE, 0, 0x3f, 0, 0);
 #endif	
 	fujitsu_scroll_init_sequence(psmouse);
 
