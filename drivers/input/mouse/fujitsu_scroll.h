@@ -51,23 +51,14 @@
  * FJS_LOG_PACKETS - enable log all incoming packets
  */
 #define FJS_LOG_PACKETS                0
-/*
- * FJS_LOG_POSSIBLE_EVENTS - enable to log some hypothetical
- * events detectable from the data
- */
-#define FJS_LOG_POSSIBLE_EVENTS        0
-/*
- * FJS_LOG_FUNCTIONS - enable to log function entries
- */
-#define FJS_LOG_FUNCTIONS              0
+
 /*
  * FJS_LOG_GETINFO - enable to log the GETINFO data on init
  */
 #define FJS_LOG_GETINFO               0
+
 /*
  * FJS_SEND_EVENTS - disable to not actually generate events
- * Note that these events to not align precisely with the hypothetical
- * events
  */
 #define FJS_SEND_EVENTS                1
 
@@ -86,17 +77,18 @@
  * How much movement should occur to consider it an event
  */
 #define FJS_POSITION_CHANGE_THRESHOLD  0x100
+
 /*
  * How much the movement value should be bitshifted right
  */
 #define FJS_MOVEMENT_BITSHIFT          6
-
 
 /*
  * FJS_MODE_ENABLE - This bit must be set in the 'mode' byte in order
  * for packets to be generated
  */
 #define FJS_MODE_ENABLE            0x80
+
 /*
  * FJS_MODE_PRESS_ONLY - This bit, if set, will suppress all weight and
  * position data.  Only the 'press' bit will be reported.
@@ -111,33 +103,9 @@
 
 #define MAX_POSITION_CHANGE  (FUJITSU_SCROLL_MAX_POSITION / 2)
 
-
-#if FJS_LOG_POSSIBLE_EVENTS
-#define FJS_LOG(psmouse, format, ...) \
-  psmouse_info(psmouse, format, ##__VA_ARGS__)
-#else
-#define FJS_LOG(psmouse, format, ...)
-#endif
-
-#if FJS_LOG_FUNCTIONS
-#define FJS_LOG_FUNCTION(psmouse, format, ...) \
-  psmouse_info(psmouse, format, ##__VA_ARGS__)
-#else
-#define FJS_LOG_FUNCTION(psmouse, format, ...)
-#endif
-
 enum fujitsu_scroll_device_type {
   FUJITSU_SCROLL_WHEEL,
   FUJITSU_SCROLL_SENSOR
-};
-
-/*
- * A structure for data extracted from a packet
- */
-struct fujitsu_scroll_packet_data {
-  unsigned int position;
-  unsigned int weight;
-  unsigned int pressed:1;
 };
 
 struct fujitsu_scroll_data {

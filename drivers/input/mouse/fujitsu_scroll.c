@@ -3,8 +3,8 @@
  * Fujitsu Scroll Devices PS/2 mouse driver
  *
  *   2021 Sam Mertens <smertens@gmail.com>
- *     Modified the original synaptics.c source to support the Fujitsu
- *     scroll devices in the Fujitsu Lifebook T901 laptop
+ *     Used the original synaptics.c source as a framework to support
+ *     the Fujitsu scroll devices in the Fujitsu Lifebook T901 laptop
  *
  *
  * Trademarks are the property of their respective owners.
@@ -135,7 +135,6 @@ void fujitsu_scroll_init_sequence(struct psmouse *psmouse) {
   u8 param[4] = { 0 };
   int error;
   int mode = 0xC4;
-  FJS_LOG_FUNCTION(psmouse, "fujitsu_scroll_init_sequence");
 
   /*
    * This is the magic sequence that has been observed to
@@ -149,7 +148,6 @@ void fujitsu_scroll_init_sequence(struct psmouse *psmouse) {
 
 void fujitsu_scroll_reset(struct psmouse *psmouse)
 {
-  FJS_LOG_FUNCTION(psmouse, "fujitsu_scroll_reset");
 	/* reset touchpad back to relative mode, gestures enabled */
   //	fujitsu_scroll_mode_cmd(psmouse, 0);
 }
@@ -164,8 +162,6 @@ int fujitsu_scroll_query_hardware(struct psmouse *psmouse)
 #endif  
   u8 param[4];
   //	int error;
-
-	FJS_LOG_FUNCTION(psmouse, "fujitsu_scroll_query_hardware");
 
 	ps2_sliced_command(ps2dev, 0);
 	ps2_command(ps2dev, param, PSMOUSE_CMD_GETINFO);
@@ -209,7 +205,7 @@ static void fujitsu_scroll_set_rate(struct psmouse *psmouse, unsigned int rate)
     struct ps2dev *ps2dev = &psmouse->ps2dev;
     u8 param[4];
     
-    FJS_LOG_FUNCTION(psmouse, "fujitsu_scroll_set_rate: %d.", rate);
+    //    psmouse_info(psmouse, "fujitsu_scroll_set_rate: %d.", rate);
 	psmouse->rate = rate;
 	// Standard rates: 10, 20, 40, 60, 80, 100, 200 
 	param[0] = rate;
@@ -257,7 +253,6 @@ static void fujitsu_scroll_process_packet(struct psmouse *psmouse)
 	
 	if (weight >= FJS_WEIGHT_THRESHOLD) {
 	  if (!priv->finger_down) {
-	    FJS_LOG(psmouse, "FINGER TOUCH");
 	    priv->finger_down = 1;
 	    priv->last_event_position = position;
 	  } else {
@@ -272,18 +267,15 @@ static void fujitsu_scroll_process_packet(struct psmouse *psmouse)
 #if FJS_SEND_EVENTS
 	      input_report_rel(dev, priv->axis, -(movement >> FJS_MOVEMENT_BITSHIFT));
 #endif
-	      FJS_LOG(psmouse, "SCROLL DOWN");
 	      priv->last_event_position = position;
 	    } else if (movement < -FJS_POSITION_CHANGE_THRESHOLD) {
 #if FJS_SEND_EVENTS
 	      input_report_rel(dev, priv->axis, -(movement >> FJS_MOVEMENT_BITSHIFT));
 #endif	      
-	      FJS_LOG(psmouse, "SCROLL UP");
 	      priv->last_event_position = position;
 	    }
 	  }
 	} else if (1 == priv->finger_down) {
-	  FJS_LOG(psmouse, "FINGER LIFT");
 #if FJS_SEND_EVENTS	    
 	    input_report_key(dev, BTN_TOUCH, 0);
 #endif	    
@@ -294,11 +286,6 @@ static void fujitsu_scroll_process_packet(struct psmouse *psmouse)
 #if FJS_SEND_EVENTS
 	input_report_key(dev, priv->button, pressed);
 #endif	
-	  if (pressed) {
-	    FJS_LOG(psmouse, "BUTTON PRESS 0x%02x", psmouse->packet[4]);
-	  } else {
-	    FJS_LOG(psmouse, "BUTTON RELEASE");
-	  }
 	  priv->pressed = pressed;
 	}
 	
@@ -327,7 +314,7 @@ static psmouse_ret_t fujitsu_scroll_process_byte(struct psmouse *psmouse)
 static void fujitsu_scroll_disconnect(struct psmouse *psmouse)
 {
 	struct fujitsu_scroll_data *priv = psmouse->private;
-	FJS_LOG_FUNCTION(psmouse, "fujitsu_scroll_disconnect");
+
 	fujitsu_scroll_reset(psmouse);
 	kfree(priv);
 	psmouse->private = NULL;
@@ -335,7 +322,7 @@ static void fujitsu_scroll_disconnect(struct psmouse *psmouse)
 
 static int fujitsu_scroll_reconnect(struct psmouse *psmouse)
 {
-	FJS_LOG_FUNCTION(psmouse, "fujitsu_scroll_reconnect");
+	psmouse_info(psmouse, "fujitsu_scroll_reconnect");
 
 	psmouse_reset(psmouse);
 	fujitsu_scroll_init_sequence(psmouse);
@@ -390,7 +377,6 @@ static int fujitsu_scroll_init_ps2(struct psmouse *psmouse)
 
 int fujitsu_scroll_init(struct psmouse *psmouse)
 {
-	FJS_LOG_FUNCTION(psmouse, "fujitsu_scroll_init");	
 	psmouse_reset(psmouse);
 	return fujitsu_scroll_init_ps2(psmouse);
 }
