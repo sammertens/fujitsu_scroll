@@ -1305,7 +1305,6 @@ static int psmouse_probe(struct psmouse *psmouse)
  */
 static void psmouse_initialize(struct psmouse *psmouse)
 {
-  psmouse_info(psmouse, "SDM psmouse_initialize");
 	/*
 	 * We set the mouse report rate, resolution and scaling.
 	 */
@@ -1321,7 +1320,6 @@ static void psmouse_initialize(struct psmouse *psmouse)
  */
 int psmouse_activate(struct psmouse *psmouse)
 {
-  psmouse_info(psmouse, "SDM psmouse_activate");
 	if (ps2_command(&psmouse->ps2dev, NULL, PSMOUSE_CMD_ENABLE)) {
 		psmouse_warn(psmouse, "Failed to enable mouse on %s\n",
 			     psmouse->ps2dev.serio->phys);
@@ -1363,8 +1361,6 @@ static void psmouse_resync(struct work_struct *work)
 	bool failed = false, enabled = false;
 	int i;
 
-	psmouse_info(psmouse, "SDM psmouse_resync");
-	
 	mutex_lock(&psmouse_mutex);
 
 	if (psmouse->state != PSMOUSE_RESYNCING)
@@ -1742,13 +1738,12 @@ static int __psmouse_reconnect(struct serio *serio, bool fast_reconnect)
 	psmouse_set_state(psmouse, PSMOUSE_INITIALIZING);
 
 	if (reconnect_handler) {
-	  psmouse_info(psmouse, "SDM calling reconnect handler");
 		if (reconnect_handler(psmouse))
 			goto out;
 	} else {
 		psmouse_reset(psmouse);
 
-		if (psmouse_probe(psmouse) < 0)
+		if (psmouse_probe(psmouse) < 0) 
 			goto out;
 
 		type = psmouse_extensions(psmouse, psmouse_max_proto, false);

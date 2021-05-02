@@ -26,7 +26,7 @@ obj-$(CONFIG_MOUSE_SYNAPTICS_USB)	+= synaptics_usb.o
 obj-$(CONFIG_MOUSE_VSXXXAA)		+= vsxxxaa.o
 
 cyapatp-objs := cyapa.o cyapa_gen3.o cyapa_gen5.o cyapa_gen6.o
-psmouse-objs := psmouse-base.o synaptics.o focaltech.o fujitsu_scroll.o
+psmouse-objs := psmouse-base.o synaptics.o focaltech.o
 
 psmouse-$(CONFIG_MOUSE_PS2_ALPS)	+= alps.o
 psmouse-$(CONFIG_MOUSE_PS2_BYD)		+= byd.o
@@ -38,6 +38,7 @@ psmouse-$(CONFIG_MOUSE_PS2_SENTELIC)	+= sentelic.o
 psmouse-$(CONFIG_MOUSE_PS2_TRACKPOINT)	+= trackpoint.o
 psmouse-$(CONFIG_MOUSE_PS2_TOUCHKIT)	+= touchkit_ps2.o
 psmouse-$(CONFIG_MOUSE_PS2_CYPRESS)	+= cypress_ps2.o
+psmouse-$(CONFIG_MOUSE_PS2_FUJITSU_SCROLL) += fujitsu_scroll.o
 psmouse-$(CONFIG_MOUSE_PS2_VMMOUSE)	+= vmmouse.o
 
 psmouse-$(CONFIG_MOUSE_PS2_SMBUS)	+= psmouse-smbus.o
