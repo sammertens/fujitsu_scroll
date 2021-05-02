@@ -2,7 +2,7 @@
 /*
  * Fujitsu Scroll Devices PS/2 mouse driver
  *
- *   2021 Sam Mertens <smertens@gmail.com>
+ *   2021 Sam Mertens <smertens.public@gmail.com>
  *     Used the original synaptics.c source as a framework to support
  *     the Fujitsu scroll devices in the Fujitsu Lifebook T901 laptop
  *
@@ -24,26 +24,6 @@
 
 
 #ifdef CONFIG_MOUSE_PS2_FUJITSU_SCROLL
-
-int get_wheel_movement(int current_pos, int last_pos) {
-  int movement;
-  int diff;
-  if (current_pos < last_pos) {
-    diff = last_pos - current_pos;
-    if (diff > MAX_POSITION_CHANGE) {
-      movement = (FUJITSU_SCROLL_MAX_POSITION - last_pos) + current_pos;
-    } else {
-      movement = -diff;
-    }
-  } else {
-    movement = current_pos - last_pos;
-    if (movement > MAX_POSITION_CHANGE) {
-      movement = -((FUJITSU_SCROLL_MAX_POSITION - current_pos) + last_pos);
-    }
-  }
-
-  return movement;
-}
 
 static const struct dmi_system_id present_dmi_table[] = {
 #if defined(CONFIG_DMI) && defined(CONFIG_X86)
@@ -145,13 +125,6 @@ void fujitsu_scroll_init_sequence(struct psmouse *psmouse) {
   param[0] = 0x14; // 20; other values don't work
   ps2_command(ps2dev, param, PSMOUSE_CMD_SETRATE);  
 }
-
-void fujitsu_scroll_reset(struct psmouse *psmouse)
-{
-	/* reset touchpad back to relative mode, gestures enabled */
-  //	fujitsu_scroll_mode_cmd(psmouse, 0);
-}
-
 
 int fujitsu_scroll_query_hardware(struct psmouse *psmouse)
 {
@@ -257,9 +230,18 @@ static void fujitsu_scroll_process_packet(struct psmouse *psmouse)
 	    priv->last_event_position = position;
 	  } else {
 	    if (priv->type == FUJITSU_SCROLL_WHEEL) {
-	      movement = get_wheel_movement(position, priv->last_event_position);
-	    } else {
-	      // scroll sensor
+               if (position > priv->last_event_position) {
+                 movement = position - priv->last_event_position;
+                 if (movement > MAX_POSITION_CHANGE) {
+                   movement = -(FUJITSU_SCROLL_RANGE - movement);
+                 }
+               } else {
+                 movement = -(priv->last_event_position - position);
+                 if (movement < -MAX_POSITION_CHANGE) {
+                   movement += FUJITSU_SCROLL_RANGE;
+                 }
+               }
+           } else {  // scroll sensor
 	      movement = position - priv->last_event_position;
 	    }
 
@@ -315,7 +297,7 @@ static void fujitsu_scroll_disconnect(struct psmouse *psmouse)
 {
 	struct fujitsu_scroll_data *priv = psmouse->private;
 
-	fujitsu_scroll_reset(psmouse);
+	psmouse_reset(psmouse);
 	kfree(priv);
 	psmouse->private = NULL;
 }
@@ -339,7 +321,6 @@ void __init fujitsu_scroll_module_init(void)
 static int fujitsu_scroll_init_ps2(struct psmouse *psmouse)
 {
 	struct fujitsu_scroll_data *priv;
-	int err;
 
 	psmouse->private = priv = kzalloc(sizeof(struct fujitsu_scroll_data), GFP_KERNEL);
 	if (!priv) {
@@ -352,7 +333,6 @@ static int fujitsu_scroll_init_ps2(struct psmouse *psmouse)
 	psmouse->set_rate = fujitsu_scroll_set_rate;
 	psmouse->disconnect = fujitsu_scroll_disconnect;
 	psmouse->reconnect = fujitsu_scroll_reconnect;
-	psmouse->cleanup = fujitsu_scroll_reset;
 	/* TODO: see if resync_time needs to be adjusted */
 	psmouse->resync_time = 0;
 
@@ -368,10 +348,6 @@ static int fujitsu_scroll_init_ps2(struct psmouse *psmouse)
 	fujitsu_scroll_init_sequence(psmouse);
 
 	return 0;
-
-	// init_fail:
-	kfree(priv);
-	return err;
 }
 
 
