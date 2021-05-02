@@ -140,26 +140,35 @@ the sensor, capacitance will go up but position will remain unchanged.
 That's the closest we get to multifinger sensing and it doesn't seem very
 useful in that regard.
 
-## Current state / TODO
+## Current state
 
-1. Small tweaks may still be needed for the Input subsystem.  It currently
-seems usable.  The Wheel does vertical scrolls, the Sensor does
-horizontal scrolls, and they both send the 'EXTRA' mouse button, which very
-few applications seem to care about.  (Accidental presses of the 'MIDDLE'
-button were problematic.)  All of this, plus scrolling sensitivity, can
-be adjusted in fujitsu_scroll.h.
+The code in this repository can be dropped into the source code of any recent
+Linux kernel, and then activated using the standard kernel menu configuration
+(Under the PS mouse settings).
 
-2. Figure out why psmouse frequently decides to reset one or the other device,
+The Wheel does vertical scrolls, the Sensor does horizontal scrolls.  The
+byte 4/bit 4 press region hasn't proved that useful so recent checkins ignore
+it.
+
+The driver should be safe on non-T901 systems.  Firstly, it uses DMI to verify
+that it's actually running on a T901.  The only downside to this is we won't
+detect any similar devices on other laptops (perhaps the T900?).  Second, the
+probe routine is known to be safe - it's a sequence the PS mouse module already
+issues upon initialization to identify Synaptics touchpads, except it looks
+for different returned data.  It is not known if there would be false positives
+were it not for the DMI check, but better to be safe.
+
+## TODO
+
+1. Figure out why psmouse frequently decides to reset one or the other device,
 usually in response to a large number of incoming data packets, and if
 possible minimize or eliminate the issue.  This actually doesn't seem to
 impact the user experience as much as one might think, and it's possible the
 original designers decided it was acceptable enough to ship.
 
-3. General code cleanup, remove the debug parts.  Most of the debug code is
-controlled with #define flags, which keeps the compiled code lean but makes
-the source code busier to read than necessary.
+2. General code cleanup, remove remaining debug parts.
 
-4. Palm detection on the Scroll Wheel?
+3. Palm detection on the Scroll Wheel?
 
 Some day:
 
@@ -169,8 +178,11 @@ very much legacy with very little development going on, so it should be
 possible to drop this code into new kernel versions with little/no changes.
 (Last tested kernel version: 5.12-rc7.)
 
-Y. Consider an out-of-kernel module.  This seems much more feasible (I
-imagine kernel maintainers would want more than one or two T901 owners to
-affirm that this code works), and would allow an easy way to provide parameters
-and different behavior modes.  (For example, the Wheel could be a D-Pad.)
+Y. Provide an alternate mode in which the latest input touch event API is used
+to deliver raw sensor data.  This data could be read by user processes which
+then use the uinput interface to generate kernel UI events (this would allow
+novel uses, such as turning the wheel into a D-Pad).
 
+Z. Consider an out-of-kernel module.  This seems much more feasible (I
+imagine kernel maintainers would want more than one or two T901 owners to
+affirm that this code works).
