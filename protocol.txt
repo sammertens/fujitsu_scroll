@@ -1,0 +1,112 @@
+The Fujitsu Scroll Device Protocol
+
+The purpose of this document is to describe the protocol used to communicate
+with the two scroll devices on the Fujitsu Lifebook T901 laptop.  These
+consist of the Scroll Wheel and the Scroll Sensor; except where noted they
+behave identically.
+
+Firstly, each device upon initialization behaves as if it were an ordinary
+PS/2 mouse and responds appropriately to all standard commands.  The only
+difference is that no motion packets are ever generated.
+
+In order to turn on data packets, an initialization mode byte must be sent
+as a sliced command, followed by sending a SETRATE (0xF3) command with a
+parameter of 0x14 (20d).  In the mode byte, only two bits were observed to
+be significant.
+bit 7 (0x80): Enable sending of data packets
+bit 5 (0x20): Suppress all capacitance, position data
+
+If bit 7 is not set, there will be no data packets.  If bit 5 is set, data
+packets will only be generated when the 'pressed' region of the sensor is
+being touched, and no capacitance or position data will be present in the
+packets (all 0).
+
+If a PS/2 RESET command is sent to the scroll device, it will revert to
+initial behavior and cease generating data packets until the mode is again
+set.
+
+An as-of-yet undeciphered set of data can be extracted from both devices by
+sending each a sliced command followed by GETINFO (0xe9).  The values of the
+3 bytes which are subsequently returned depends upon which device is being
+communicated to, and the lower 4 bits of the sent sliced command.  The upper
+4 bits do not appear to have any effect.  The returned data appears to always
+be the same for the device that returns it.  The data returned from 0x00 is
+used for device identification in the driver code.
+
+The scroll wheel (serio2) returns the following:
+Command - Response
+ 0x00 - 0x04 0x43 0x07
+ 0x01 - 0x03 0x00 0x00
+ 0x02 - 0x00 0x00 0x05
+ 0x03 - 0x75 0x82 0x00
+ 0x04 - 0x3b 0x0f 0x52
+ 0x05 - 0x11 0x36 0xeb
+ 0x06 - 0x00 0x00 0x00
+ 0x07 - 0x00 0x00 0x00
+ 0x08 - 0x48 0x0b 0x00
+ 0x09 - 0x00 0x09 0x00
+ 0x0a - 0x09 0x9b 0x52
+ 0x0b - 0x00 0x00 0x00
+ 0x0c - 0x02 0x00 0x00
+ 0x0d - 0x00 0x3e 0x02
+ 0x0e - 0x85 0xf4 0x00
+ 0x0f - 0x0b 0xf4 0xe3
+
+The scroll sensor (serio3) returns the following:
+Command - Response
+ 0x00 - 0x00 0x43 0x07
+ 0x01 - 0x02 0x00 0x00
+ 0x02 - 0x00 0x00 0x04
+ 0x03 - 0x74 0x92 0x00
+ 0x04 - 0x25 0x06 0x4f
+ 0x05 - 0x23 0xbf 0xb9
+ 0x06 - 0x00 0x00 0x00
+ 0x07 - 0x00 0x00 0x00
+ 0x08 - 0x7c 0x02 0x00
+ 0x09 - 0x00 0x09 0x04
+ 0x0a - 0x07 0xdd 0x5b
+ 0x0b - 0x00 0x00 0x00
+ 0x0c - 0x02 0x00 0x00
+ 0x0d - 0xe0 0xff 0x00
+ 0x0e - 0x57 0x86 0xfd
+ 0x0f - 0x02 0xed 0x00
+
+Firmware versions?  Serial numbers?  Swiss bank accounts?
+
+Data packets
+The data returned always appears to be in 6 byte packets.  Here is
+the summary I originally wrote for the header file, which explains it all:
+Scroll Wheel packets
+ Bytes 0,1,2:  1 0 c c c c c c  0 0 0 0 a a a a  a a a a a a a a
+ Bytes 3,4,5:  1 1 0 0 0 0 0 0  0 0 0 p 0 0 0 0  0 0 0 0 0 0 0 0
+ 
+   c - 6 bits, capacitance, how much capacitance is detected.
+               Seems to be highest around a ring inside the wheel
+               circle, decreasing the farther the finger is from
+               that ring
+   a - 12 bits, angle, the angle of the wheel where touch is sensed
+                the upper 4 bits are 'f' when the touch is at the
+                top of the wheel (12 o'clock), and loops back to 0.
+                Increased in a clockwise direction.
+   p - 1 bit,  pressed, is the wheel being touched in the center.
+
+   Multitouch is not supported.  If one or more fingers are added to
+   a first one that's touching, the reported angle will stay the same
+   but the capacitance and center press may change.
+ 
+
+Scroll Sensor packets
+  Same as scroll wheel, except the 'a' angle is now position, with
+  lower values to the right and higher values to the left, and 'p'
+  now indicates whether a spot on the bezel about 0.5cm left of the
+  sensor is being touched.  There is no indication on the bezel where
+  this spot is.  Unlike the wheel, it is very possible for 'p' to be 1
+  and both 'c' and 'a' to be 0. (Although they may not be if both this
+  spot and the sensor are being touched simultaneously.)
+
+
+This is the current sum of what I know about communication with these
+devices.  It's certainly enough to write drivers.  There's a lot more they
+which they don't respond to (for instance, the Logitech protocol extensions
+appear to fall flat).
+
