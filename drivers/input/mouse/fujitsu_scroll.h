@@ -2,33 +2,6 @@
 /*
  * Fujitsu Scroll device PS/2 mouse driver
  *
- * Scroll Wheel packets
- *  Bytes 0,1,2:  1 0 c c c c c c  0 0 0 0 a a a a  a a a a a a a a
- *  Bytes 3,4,5:  1 1 0 0 0 0 0 0  0 0 0 p 0 0 0 0  0 0 0 0 0 0 0 0
- *
- *  c - 6 bits, capacitance, how much capacitance is detected.
- *              Seems to be highest around a ring inside the wheel
- *              circle, decreasing the farther the finger is from
- *              that ring
- *  a - 12 bits, angle, the angle of the wheel where touch is sensed
- *               the upper 4 bits are 'f' when the touch is at the
- *               top of the wheel (12 o'clock), and loops back to 0.
- *               Increased in a clockwise direction.
- *  p - 1 bit,  pressed, is the wheel being touched in the center.
- *
- *  Multitouch is not supported.  If one or more fingers are added to
- *  a first one that's touching, the reported angle will stay the same
- *  but the capacitance and center press may change.
- *
- *
- * Scroll Sensor packets
- *  Same as scroll wheel, except the 'a' angle is now position, with
- *  lower values to the right and higher values to the left, and 'p'
- *  now indicates whether a spot on the bezel about 0.5cm left of the
- *  sensor is being touched.  There is no indication on the bezel where
- *  this spot is.  Unlike the wheel, it is very possible for 'p' to be 1
- *  and both 'c' and 'a' to be 0. (Although they may not be if both this
- *  spot and the sensor are being touched simultaneously.)
  */
 
 #ifndef _FUJITSU_SCROLL_H
@@ -36,9 +9,11 @@
 
 #ifdef CONFIG_MOUSE_PS2_FUJITSU_SCROLL
 
-#define FUJITSU_SCROLL_RANGE        0x01000
+#define FJS_RANGE        0x01000
 
-#define FUJITSU_SCROLL_MAX_POSITION (FUJITSU_SCROLL_RANGE - 1)
+#define FJS_MAX_POS (FJS_RANGE - 1)
+
+#define FJS_PACKET_SIZE             6
 
 #define FUJITSU_SCROLL_ID           0x43
 #define FUJITSU_SCROLL_WHEEL_ID     04
@@ -47,7 +22,7 @@
 /*
  * The minimum weight to register an actual finger touch
  */
-#define FJS_WEIGHT_THRESHOLD           0x08
+#define FJS_CAPACITANCE_THRESHOLD           0x08
 
 #define FJS_WHEEL_AXIS                 REL_WHEEL
 #define FJS_SENSOR_AXIS                REL_HWHEEL
@@ -55,25 +30,19 @@
 /*
  * How much movement should occur to consider it an event
  */
-#define FJS_POSITION_CHANGE_THRESHOLD  0x100
+#define FJS_POSITION_CHANGE_THRESHOLD  0x04
 
 /*
  * How much the movement value should be bitshifted right
  */
-#define FJS_MOVEMENT_BITSHIFT          6
+#define FJS_MOVEMENT_BITSHIFT          1
 
 /*
- * FJS_MODE_ENABLE - This bit must be set in the 'mode' byte in order
- * for packets to be generated
+ * FJS_INIT_MODE - the mode byte to send to enable data packets
  */
-#define FJS_MODE_ENABLE            0x80
+#define FJS_INIT_MODE              0x80
 
-/*
- * FJS_INIT_MODE - the mode byte to send upon initialization
- */
-#define FJS_INIT_MODE              (FJS_MODE_ENABLE)
-
-#define MAX_POSITION_CHANGE  (FUJITSU_SCROLL_MAX_POSITION / 2)
+#define FJS_MAX_POS_CHG  (FJS_MAX_POS / 2)
 
 enum fujitsu_scroll_device_type {
   FUJITSU_SCROLL_WHEEL,

@@ -106,7 +106,7 @@ Scroll Sensor packets
 
 
 This is the current sum of what I know about communication with these
-devices.  It's certainly enough to write drivers.  There's a lot more they
-which they don't respond to (for instance, the Logitech protocol extensions
-appear to fall flat).
+devices.  It's certainly enough to write drivers.  There's a lot more 
+which they don't respond to (for instance, the Logitech protocol
+extensions appear to fall flat).
 

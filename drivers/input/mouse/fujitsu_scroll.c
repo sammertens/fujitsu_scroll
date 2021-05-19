@@ -59,10 +59,6 @@ int fujitsu_scroll_detect(struct psmouse *psmouse, bool set_properties)
 	ps2_command(ps2dev, param, PSMOUSE_CMD_SETRES);
 	ps2_command(ps2dev, param, PSMOUSE_CMD_GETINFO);
 
-	/*
-	 * Scroll wheel returns  04 43 07
-	 * Scroll sensor returns 00 43 07
-	 */
 	if (param[1] != FUJITSU_SCROLL_ID) {
 	     return -ENODEV;
 	}
@@ -129,30 +125,30 @@ static void fujitsu_scroll_process_packet(struct psmouse *psmouse)
 	struct input_dev *dev = psmouse->dev;
 	struct fujitsu_scroll_data *priv = psmouse->private;
 
-	unsigned int weight;
+	unsigned int capacitance;
 	unsigned int position;
 	
 	int movement;
 
 	position = ((psmouse->packet[1] & 0x0f) << 8) +
 	  psmouse->packet[2];
-	weight = psmouse->packet[0] & 0x3f;
+	capacitance = psmouse->packet[0] & 0x3f;
 
-	if (weight >= FJS_WEIGHT_THRESHOLD) {
+	if (capacitance >= FJS_CAPACITANCE_THRESHOLD) {
 	  if (!priv->finger_down) {
 	    priv->finger_down = 1;
 	    priv->last_event_position = position;
 	  } else {
-	    if (priv->type == FUJITSU_SCROLL_WHEEL) {
+	    if (priv->type == FUJITSU_SCROLL_WHEEL) { // scroll wheel
 	        if (position > priv->last_event_position) {
 		  movement = position - priv->last_event_position;
-		  if (movement > MAX_POSITION_CHANGE) {
-		    movement = -(FUJITSU_SCROLL_RANGE - movement);
+		  if (movement > FJS_MAX_POS_CHG) {
+		    movement = -(FJS_RANGE - movement);
 		  }
 		} else {
 		  movement = -(priv->last_event_position - position);
-		  if (movement < -MAX_POSITION_CHANGE) {
-		    movement += FUJITSU_SCROLL_RANGE;
+		  if (movement < -FJS_MAX_POS_CHG) {
+		    movement += FJS_RANGE;
 		  }
 		}
 	    } else {  // scroll sensor
@@ -175,7 +171,7 @@ static void fujitsu_scroll_process_packet(struct psmouse *psmouse)
 
 static psmouse_ret_t fujitsu_scroll_process_byte(struct psmouse *psmouse)
 {
-  if (psmouse->pktcnt >= 6) { /* Full packet received */
+  if (psmouse->pktcnt >= FJS_PACKET_SIZE) { /* Full packet received */
     fujitsu_scroll_process_packet(psmouse);
     return PSMOUSE_FULL_PACKET;
   }
@@ -205,11 +201,6 @@ static int fujitsu_scroll_reconnect(struct psmouse *psmouse)
 }
 
 
-void __init fujitsu_scroll_module_init(void)
-{
-
-}
-
 int fujitsu_scroll_init(struct psmouse *psmouse)
 {
 	struct fujitsu_scroll_data *priv;
@@ -223,11 +214,10 @@ int fujitsu_scroll_init(struct psmouse *psmouse)
 	}
 	
 	psmouse->protocol_handler = fujitsu_scroll_process_byte;
-	psmouse->pktsize = 6;
+	psmouse->pktsize = FJS_PACKET_SIZE;
 
 	psmouse->disconnect = fujitsu_scroll_disconnect;
 	psmouse->reconnect = fujitsu_scroll_reconnect;
-	/* TODO: see if resync_time needs to be adjusted */
 	psmouse->resync_time = 0;
 
 	fujitsu_scroll_query_hardware(psmouse);
