@@ -35,7 +35,7 @@
 /*
  * How much the movement value should be bitshifted right
  */
-#define FJS_MOVEMENT_BITSHIFT          1
+#define FJS_MOVEMENT_BITSHIFT          3
 
 /*
  * FJS_INIT_MODE - the mode byte to send to enable data packets
