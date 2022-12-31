@@ -15,6 +15,8 @@ and [here on linuxquestions.org](https://www.linuxquestions.org/questions/linux-
 
 ## The Hardware (human interface)
 The T901 sports two features that up until now have not had any Linux support.
+It's also been reported that the Fujitsu P772 has a compatible scroll wheel,
+so that has been added to the detection routine.
 
 ### The Scroll Wheel
 This is a round indentation on the palmrest to the right of the (well
@@ -176,7 +178,7 @@ X. Get the driver in a state that it can be submitted to the kernel for
 inclusion.  In the meantime, the good news is that i8042 and PS/2 support is
 very much legacy with very little development going on, so it should be
 possible to drop this code into new kernel versions with little/no changes.
-(Last tested kernel version: 5.12-rc7.)
+(Last tested kernel version: 5.15.75.)
 
 Y. Provide an alternate mode in which the latest input touch event API is used
 to deliver raw sensor data.  This data could be read by user processes which

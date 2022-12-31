@@ -36,6 +36,18 @@ static const struct dmi_system_id present_dmi_table[] = {
 	                DMI_MATCH(DMI_PRODUCT_NAME, "LifeBook T901"),
 	        },
 	},
+	{
+		.matches = {
+			DMI_MATCH(DMI_SYS_VENDOR, "FUJITSU"),
+			DMI_MATCH(DMI_PRODUCT_NAME, "LIFEBOOK P772"),
+		},
+	},
+	{
+	        .matches = {
+	                DMI_MATCH(DMI_SYS_VENDOR, "FUJITSU"),
+	                DMI_MATCH(DMI_PRODUCT_NAME, "LifeBook P772"),
+	        },
+	},
 	
 	{ }
 };
