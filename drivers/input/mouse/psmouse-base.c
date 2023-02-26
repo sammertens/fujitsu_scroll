@@ -95,7 +95,7 @@ PSMOUSE_DEFINE_ATTR(resync_time, S_IWUSR | S_IRUGO,
 			(void *) offsetof(struct psmouse, resync_time),
 			psmouse_show_int_attr, psmouse_set_int_attr);
 
-static struct attribute *psmouse_attributes[] = {
+static struct attribute *psmouse_dev_attrs[] = {
 	&psmouse_attr_protocol.dattr.attr,
 	&psmouse_attr_rate.dattr.attr,
 	&psmouse_attr_resolution.dattr.attr,
@@ -104,9 +104,7 @@ static struct attribute *psmouse_attributes[] = {
 	NULL
 };
 
-static const struct attribute_group psmouse_attribute_group = {
-	.attrs	= psmouse_attributes,
-};
+ATTRIBUTE_GROUPS(psmouse_dev);
 
 /*
  * psmouse_mutex protects all operations changing state of mouse
@@ -912,13 +910,13 @@ static const struct psmouse_protocol psmouse_protocols[] = {
 #endif
 #ifdef CONFIG_MOUSE_PS2_FUJITSU_SCROLL
 	{
-	  .type           = PSMOUSE_FUJITSU_SCROLL,
-	  .name           = "FujitsuPS/2",
-	  .alias          = "fjs",
-	  .detect         = fujitsu_scroll_detect,
-	  .init           = fujitsu_scroll_init,
-	},
-#endif	
+          .type           = PSMOUSE_FUJITSU_SCROLL,
+          .name           = "FujitsuPS/2",
+          .alias          = "fjs",
+          .detect         = fujitsu_scroll_detect,
+          .init           = fujitsu_scroll_init,
+        },
+#endif  
 	{
 		.type		= PSMOUSE_AUTO,
 		.name		= "auto",
@@ -1094,17 +1092,6 @@ static int psmouse_extensions(struct psmouse *psmouse,
 				 set_properties, max_proto > PSMOUSE_IMEX))
 		return PSMOUSE_VMMOUSE;
 
-#ifdef CONFIG_MOUSE_PS2_FUJITSU_SCROLL	
-	/*
-	 * Look for the Fujitsu Scroll devices.  Uses DMI to only check
-         * those laptop models they're known to be on.
-	 */
-	if (psmouse_try_protocol(psmouse, PSMOUSE_FUJITSU_SCROLL, &max_proto,
-				 set_properties, max_proto > PSMOUSE_IMEX)) {
-	  return PSMOUSE_FUJITSU_SCROLL;
-	}
-#endif
-	
 	/*
 	 * Try Kensington ThinkingMouse (we try first, because Synaptics
 	 * probe upsets the ThinkingMouse).
@@ -1114,6 +1101,17 @@ static int psmouse_extensions(struct psmouse *psmouse,
 				 set_properties, true)) {
 		return PSMOUSE_THINKPS;
 	}
+
+#ifdef CONFIG_MOUSE_PS2_FUJITSU_SCROLL  
+        /*
+         * Look for the Fujitsu Scroll devices.  Uses DMI to only check
+         * those laptop models they're known to be on.
+         */
+        if (psmouse_try_protocol(psmouse, PSMOUSE_FUJITSU_SCROLL, &max_proto,
+                                 set_properties, max_proto > PSMOUSE_IMEX)) {
+          return PSMOUSE_FUJITSU_SCROLL;
+        }
+#endif
 
 	/*
 	 * Try Synaptics TouchPad. Note that probing is done even if
@@ -1502,8 +1500,6 @@ static void psmouse_disconnect(struct serio *serio)
 	struct psmouse *psmouse = serio_get_drvdata(serio);
 	struct psmouse *parent = NULL;
 
-	sysfs_remove_group(&serio->dev.kobj, &psmouse_attribute_group);
-
 	mutex_lock(&psmouse_mutex);
 
 	psmouse_set_state(psmouse, PSMOUSE_CMD_MODE);
@@ -1668,10 +1664,6 @@ static int psmouse_connect(struct serio *serio, struct serio_driver *drv)
 	if (parent && parent->pt_activate)
 		parent->pt_activate(parent);
 
-	error = sysfs_create_group(&serio->dev.kobj, &psmouse_attribute_group);
-	if (error)
-		goto err_pt_deactivate;
-
 	/*
 	 * PS/2 devices having SMBus companions should stay disabled
 	 * on PS/2 side, in order to have SMBus part operable.
@@ -1687,13 +1679,6 @@ static int psmouse_connect(struct serio *serio, struct serio_driver *drv)
 	mutex_unlock(&psmouse_mutex);
 	return retval;
 
- err_pt_deactivate:
-	if (parent && parent->pt_deactivate)
-		parent->pt_deactivate(parent);
-	if (input_dev) {
-		input_unregister_device(input_dev);
-		input_dev = NULL; /* so we don't try to free it below */
-	}
  err_protocol_disconnect:
 	if (psmouse->disconnect)
 		psmouse->disconnect(psmouse);
@@ -1743,7 +1728,7 @@ static int __psmouse_reconnect(struct serio *serio, bool fast_reconnect)
 	} else {
 		psmouse_reset(psmouse);
 
-		if (psmouse_probe(psmouse) < 0) 
+		if (psmouse_probe(psmouse) < 0)
 			goto out;
 
 		type = psmouse_extensions(psmouse, psmouse_max_proto, false);
@@ -1812,7 +1797,8 @@ MODULE_DEVICE_TABLE(serio, psmouse_serio_ids);
 
 static struct serio_driver psmouse_drv = {
 	.driver		= {
-		.name	= "psmouse",
+		.name		= "psmouse",
+		.dev_groups	= psmouse_dev_groups,
 	},
 	.description	= DRIVER_DESC,
 	.id_table	= psmouse_serio_ids,
