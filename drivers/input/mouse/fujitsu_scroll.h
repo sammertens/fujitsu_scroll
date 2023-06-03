@@ -9,8 +9,13 @@
 
 #ifdef CONFIG_MOUSE_PS2_FUJITSU_SCROLL
 
+#define FJS_ALLOW_WHITELIST_ONLY 0
+
 #define FJS_RANGE        0x01000
 
+/*
+ * The maximum possible range that can be reported
+ */
 #define FJS_MAX_POS (FJS_RANGE - 1)
 
 #define FJS_PACKET_SIZE             6

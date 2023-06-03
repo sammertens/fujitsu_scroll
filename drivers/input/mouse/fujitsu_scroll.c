@@ -4,13 +4,15 @@
  *
  *   2021 Sam Mertens <smertens.public@gmail.com>
  *     Used the original synaptics.c source as a framework to support
- *     the Fujitsu scroll devices in the Fujitsu Lifebook T901 laptop
+ *     the Fujitsu scroll devices in the Fujitsu Lifebook T901/P772
+ *     laptops
  *
  *
  * Trademarks are the property of their respective owners.
  */
 
 #include <linux/module.h>
+#include <linux/moduleparam.h>
 #include <linux/dmi.h>
 #include <linux/serio.h>
 #include <linux/libps2.h>
@@ -21,9 +23,20 @@
 
 #ifdef CONFIG_MOUSE_PS2_FUJITSU_SCROLL
 
+static short fujitsu_capacitance = FJS_CAPACITANCE_THRESHOLD;
+static short fujitsu_threshold = FJS_POSITION_CHANGE_THRESHOLD;
+static short fujitsu_bitshift = 1 << FJS_MOVEMENT_BITSHIFT;
+
+module_param(fujitsu_capacitance, short, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
+MODULE_PARM_DESC(fujitsu_capaciance, "Capacitance threshold");
+module_param(fujitsu_threshold, short, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
+MODULE_PARM_DESC(fujitsu_threshold, "Change threshold");
+module_param(fujitsu_bitshift, short, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
+MODULE_PARM_DESC(fujitsu_bitshift, "Movement divisor");
+
 #if defined(CONFIG_DMI) && defined(CONFIG_X86)
 static const struct dmi_system_id present_dmi_table[] = {
-
+#if FJS_ALLOW_WHITELIST_ONLY
 	{
 		.matches = {
 			DMI_MATCH(DMI_SYS_VENDOR, "FUJITSU"),
@@ -48,7 +61,19 @@ static const struct dmi_system_id present_dmi_table[] = {
 	                DMI_MATCH(DMI_PRODUCT_NAME, "LifeBook P772"),
 	        },
 	},
-	
+	{                                                        
+                .matches = {                                         
+                        DMI_MATCH(DMI_SYS_VENDOR, "FUJITSU"),        
+                        DMI_MATCH(DMI_PRODUCT_NAME, "FMVNP8AE"),     
+                },                                                   
+        }, 
+#else
+	{
+	        .matches = {
+                        DMI_MATCH(DMI_SYS_VENDOR, "FUJITSU"),
+                },
+        },
+#endif	
 	{ }
 };
 #endif
@@ -59,7 +84,7 @@ int fujitsu_scroll_detect(struct psmouse *psmouse, bool set_properties)
 	struct ps2dev *ps2dev = &psmouse->ps2dev;
 	u8 param[4] = { 0 };
 
-#if defined(CONFIG_DMI) && defined(CONFIG_X86)	
+#if defined(CONFIG_DMI) && defined(CONFIG_X86)
 	if (!dmi_check_system(present_dmi_table)) {
 	  return -ENODEV;
 	}
@@ -146,7 +171,7 @@ static void fujitsu_scroll_process_packet(struct psmouse *psmouse)
 	  psmouse->packet[2];
 	capacitance = psmouse->packet[0] & 0x3f;
 
-	if (capacitance >= FJS_CAPACITANCE_THRESHOLD) {
+	if (capacitance >= fujitsu_capacitance) {
 	  if (!priv->finger_down) {
 	    priv->finger_down = 1;
 	    priv->last_event_position = position;
@@ -167,9 +192,11 @@ static void fujitsu_scroll_process_packet(struct psmouse *psmouse)
 	      movement = position - priv->last_event_position;
 	    }
 
-	    if (movement > FJS_POSITION_CHANGE_THRESHOLD ||
-		movement < -FJS_POSITION_CHANGE_THRESHOLD) {
-	      input_report_rel(dev, priv->axis, -(movement >> FJS_MOVEMENT_BITSHIFT));
+	    if (movement > fujitsu_threshold) {
+	      input_report_rel(dev, priv->axis, -(movement >> fujitsu_bitshift));
+	      priv->last_event_position = position;
+	    } else if (movement < -fujitsu_threshold) {
+	      input_report_rel(dev, priv->axis, ((-movement) >> fujitsu_bitshift));
 	      priv->last_event_position = position;
 	    }
 	  }

@@ -1115,6 +1115,18 @@ static int psmouse_extensions(struct psmouse *psmouse,
 		return PSMOUSE_THINKPS;
 	}
 
+
+#ifdef CONFIG_MOUSE_PS2_FUJITSU_SCROLL  
+        /*
+         * Look for the Fujitsu Scroll devices.  Uses DMI to limit this check
+         * to those laptop models they're may actually be on.
+         */
+        if (psmouse_try_protocol(psmouse, PSMOUSE_FUJITSU_SCROLL, &max_proto,
+                                 set_properties, max_proto > PSMOUSE_IMEX)) {
+          return PSMOUSE_FUJITSU_SCROLL;
+        }
+#endif
+
 	/*
 	 * Try Synaptics TouchPad. Note that probing is done even if
 	 * Synaptics protocol support is disabled in config - we need to
