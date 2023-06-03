@@ -1104,8 +1104,8 @@ static int psmouse_extensions(struct psmouse *psmouse,
 
 #ifdef CONFIG_MOUSE_PS2_FUJITSU_SCROLL  
         /*
-         * Look for the Fujitsu Scroll devices.  Uses DMI to only check
-         * those laptop models they're known to be on.
+         * Look for the Fujitsu Scroll devices.  Uses DMI to limit this check
+         * to those laptop models they're may actually be on.
          */
         if (psmouse_try_protocol(psmouse, PSMOUSE_FUJITSU_SCROLL, &max_proto,
                                  set_properties, max_proto > PSMOUSE_IMEX)) {

@@ -185,12 +185,13 @@ config MOUSE_PS2_FOCALTECH
 	  If unsure, say Y.
 
 config MOUSE_PS2_FUJITSU_SCROLL
-        bool "Fujitsu Lifebook T901 Scroll Device protocol extension"
+        bool "Fujitsu Lifebook T901/P772 Scroll Device protocol extension"
+	default n
         depends on MOUSE_PS2 && X86 && DMI
         help
-          Say Y here if you have a Fujitsu Lifebook T901 laptop and
-	  wish to use the extra scrolling devices.  This is unrelated
-	  to touchpad support.
+          Say Y here if you have a Fujitsu Lifebook T901 or P772 laptop and
+	  (or perhaps others) and wish to use the extra scrolling devices.
+	  This is unrelated to touchpad support.
 
           If unsure, say N.
 
