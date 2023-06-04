@@ -25,14 +25,14 @@
 
 static short fujitsu_capacitance = FJS_CAPACITANCE_THRESHOLD;
 static short fujitsu_threshold = FJS_POSITION_CHANGE_THRESHOLD;
-static short fujitsu_bitshift = 1 << FJS_MOVEMENT_BITSHIFT;
+static short fujitsu_bitshift = FJS_MOVEMENT_BITSHIFT;
 
 module_param(fujitsu_capacitance, short, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
 MODULE_PARM_DESC(fujitsu_capaciance, "Capacitance threshold");
 module_param(fujitsu_threshold, short, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
 MODULE_PARM_DESC(fujitsu_threshold, "Change threshold");
 module_param(fujitsu_bitshift, short, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
-MODULE_PARM_DESC(fujitsu_bitshift, "Movement divisor");
+MODULE_PARM_DESC(fujitsu_bitshift, "Movement bitshift (reducer)");
 
 #if defined(CONFIG_DMI) && defined(CONFIG_X86)
 static const struct dmi_system_id present_dmi_table[] = {
