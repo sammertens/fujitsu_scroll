@@ -2,7 +2,7 @@
 
 ## Project Goal
 The goal of this project is to develop Linux kernel device drivers for the
-scroll devices found in Fujitsu Lifebook T901 laptops.
+scroll devices found in Fujitsu Lifebook T901 laptops.  (It has since been found to exist on P772 laptops as well.)
 
 ## History
 I was looking for a cheap laptop to run Linux on, and picked up a Fujitsu
@@ -39,7 +39,7 @@ T901 is the only laptop to have both devices.
 
 
 ## The Hardware (System Interface)
-Investigation of the sole T901 at my disposal showed that in addition to the
+Investigation of the T901s at my disposal showed that in addition to the
 Synaptics touchpad, there are two other mystery devices attached to the
 legacy i8042 interface, which the existing psmouse driver identifies as
 generic PS/2 mice.  With a stock Linux kernel, they will respond when commands
@@ -154,7 +154,9 @@ it.
 
 The driver should be safe on non-T901 systems.  Firstly, it uses DMI to verify
 that it's actually running on a T901.  The only downside to this is we won't
-detect any similar devices on other laptops (perhaps the T900?).  Second, the
+detect any similar devices on other laptops (perhaps the T900?). (UPDATE: the DMI
+check now only looks to make sure that Fujitsu is the manufacturer.  Stricter model-specific 
+checks can be reenabled with a #define.)  Second, the
 probe routine is known to be safe - it's a sequence the PS mouse module already
 issues upon initialization to identify Synaptics touchpads, except it looks
 for different returned data.  It is not known if there would be false positives
@@ -178,7 +180,8 @@ X. Get the driver in a state that it can be submitted to the kernel for
 inclusion.  In the meantime, the good news is that i8042 and PS/2 support is
 very much legacy with very little development going on, so it should be
 possible to drop this code into new kernel versions with little/no changes.
-(Last tested kernel version: 5.15.75.)
+(Last tested kernel versions: 5.15.80, and 6.1.31 - there is a separate branch for 5.x kernels,
+'5.15.x', and I'll continue to cherry-pick changes from main so long as the merges remain trivial.)
 
 Y. Provide an alternate mode in which the latest input touch event API is used
 to deliver raw sensor data.  This data could be read by user processes which
