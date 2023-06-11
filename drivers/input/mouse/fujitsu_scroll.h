@@ -50,15 +50,15 @@
 #define FJS_MAX_POS_CHG  (FJS_MAX_POS / 2)
 
 enum fujitsu_scroll_device_type {
-  FUJITSU_SCROLL_WHEEL,
-  FUJITSU_SCROLL_SENSOR
+	FUJITSU_SCROLL_WHEEL,
+	FUJITSU_SCROLL_SENSOR
 };
 
 struct fujitsu_scroll_data {
-  enum fujitsu_scroll_device_type type;
-  unsigned int axis;
-  unsigned int last_event_position;
-  unsigned int finger_down:1;
+	enum fujitsu_scroll_device_type type;
+	unsigned int axis;
+	unsigned int last_event_position;
+	unsigned int finger_down:1;
 };
 
 void fujitsu_scroll_module_init(void);
