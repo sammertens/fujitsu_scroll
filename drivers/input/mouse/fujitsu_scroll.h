@@ -9,8 +9,6 @@
 
 #ifdef CONFIG_MOUSE_PS2_FUJITSU_SCROLL
 
-#define FJS_ALLOW_WHITELIST_ONLY 0
-
 #define FJS_RANGE        0x01000
 
 /*

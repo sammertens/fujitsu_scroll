@@ -27,56 +27,12 @@ static short fujitsu_capacitance = FJS_CAPACITANCE_THRESHOLD;
 static short fujitsu_threshold = FJS_POSITION_CHANGE_THRESHOLD;
 static short fujitsu_bitshift = FJS_MOVEMENT_BITSHIFT;
 
-module_param(fujitsu_capacitance, short, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
+module_param(fujitsu_capacitance, short, 0644);
 MODULE_PARM_DESC(fujitsu_capaciance, "Capacitance threshold");
-module_param(fujitsu_threshold, short, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
+module_param(fujitsu_threshold, short, 0644);
 MODULE_PARM_DESC(fujitsu_threshold, "Change threshold");
-module_param(fujitsu_bitshift, short, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
+module_param(fujitsu_bitshift, short, 0644);
 MODULE_PARM_DESC(fujitsu_bitshift, "Movement bitshift (reducer)");
-
-#if defined(CONFIG_DMI) && defined(CONFIG_X86)
-static const struct dmi_system_id present_dmi_table[] = {
-#if FJS_ALLOW_WHITELIST_ONLY
-	{
-	 .matches = {
-		     DMI_MATCH(DMI_SYS_VENDOR, "FUJITSU"),
-		     DMI_MATCH(DMI_PRODUCT_NAME, "LIFEBOOK T901"),
-		     },
-	  },
-	{
-	 .matches = {
-		     DMI_MATCH(DMI_SYS_VENDOR, "FUJITSU"),
-		     DMI_MATCH(DMI_PRODUCT_NAME, "LifeBook T901"),
-		     },
-	  },
-	{
-	 .matches = {
-		     DMI_MATCH(DMI_SYS_VENDOR, "FUJITSU"),
-		     DMI_MATCH(DMI_PRODUCT_NAME, "LIFEBOOK P772"),
-		     },
-	  },
-	{
-	 .matches = {
-		     DMI_MATCH(DMI_SYS_VENDOR, "FUJITSU"),
-		     DMI_MATCH(DMI_PRODUCT_NAME, "LifeBook P772"),
-		     },
-	  },
-	{
-	 .matches = {
-		     DMI_MATCH(DMI_SYS_VENDOR, "FUJITSU"),
-		     DMI_MATCH(DMI_PRODUCT_NAME, "FMVNP8AE"),
-		     },
-	  },
-#else
-	{
-	 .matches = {
-		     DMI_MATCH(DMI_SYS_VENDOR, "FUJITSU"),
-		     },
-	  },
-#endif
-	{ }
-};
-#endif
 
 int fujitsu_scroll_detect(struct psmouse *psmouse, bool set_properties)
 {
@@ -84,9 +40,17 @@ int fujitsu_scroll_detect(struct psmouse *psmouse, bool set_properties)
 	u8 param[4] = { 0 };
 
 #if defined(CONFIG_DMI) && defined(CONFIG_X86)
-	if (!dmi_check_system(present_dmi_table)) {
+	struct dmi_system_id present_dmi_table[] = {
+		{
+		 .matches = {
+			     DMI_MATCH(DMI_SYS_VENDOR, "FUJITSU"),
+			     },
+		  },
+		{ }
+	};
+
+	if (!dmi_check_system(present_dmi_table))
 		return -ENODEV;
-	}
 #endif
 
 	ps2_command(ps2dev, param, PSMOUSE_CMD_SETRES);
@@ -95,9 +59,8 @@ int fujitsu_scroll_detect(struct psmouse *psmouse, bool set_properties)
 	ps2_command(ps2dev, param, PSMOUSE_CMD_SETRES);
 	ps2_command(ps2dev, param, PSMOUSE_CMD_GETINFO);
 
-	if (param[1] != FUJITSU_SCROLL_ID) {
+	if (param[1] != FUJITSU_SCROLL_ID)
 		return -ENODEV;
-	}
 
 	if (set_properties) {
 		psmouse->vendor = "Fujitsu";
@@ -187,9 +150,8 @@ static void fujitsu_scroll_process_packet(struct psmouse *psmouse)
 					movement =
 					    -(priv->last_event_position -
 					      position);
-					if (movement < -FJS_MAX_POS_CHG) {
+					if (movement < -FJS_MAX_POS_CHG)
 						movement += FJS_RANGE;
-					}
 				}
 			} else {	// scroll sensor
 				movement = position - priv->last_event_position;
@@ -207,7 +169,7 @@ static void fujitsu_scroll_process_packet(struct psmouse *psmouse)
 				priv->last_event_position = position;
 			}
 		}
-	} else if (1 == priv->finger_down) {
+	} else if (priv->finger_down == 1) {
 		priv->finger_down = 0;
 	}
 
@@ -253,9 +215,8 @@ int fujitsu_scroll_init(struct psmouse *psmouse)
 
 	psmouse->private = priv = kzalloc(sizeof(struct fujitsu_scroll_data),
 					  GFP_KERNEL);
-	if (!priv) {
+	if (!priv)
 		return -ENOMEM;
-	}
 
 	psmouse->protocol_handler = fujitsu_scroll_process_byte;
 	psmouse->pktsize = FJS_PACKET_SIZE;
