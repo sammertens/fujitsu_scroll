@@ -23,15 +23,17 @@
 #define FUJITSU_SCROLL_SENSOR_ID    00
 
 /*
- * The minimum weight to register an actual finger touch
+ * The minimum weight to register an actual finger touch.
+ * Capacitance can range up to 6 bits (0x3F)
  */
-#define FJS_CAPACITANCE_THRESHOLD           0x08
+#define FJS_CAPACITANCE_THRESHOLD           0x09
 
 #define FJS_WHEEL_AXIS                 REL_WHEEL
 #define FJS_SENSOR_AXIS                REL_HWHEEL
 
 /*
  * How much movement should occur to consider it an event
+ * Movement is measured as a change in angle, which is 12 bits.
  */
 #define FJS_POSITION_CHANGE_THRESHOLD  0x04
 
