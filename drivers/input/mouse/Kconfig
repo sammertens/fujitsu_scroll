@@ -190,7 +190,7 @@ config MOUSE_PS2_FUJITSU_SCROLL
 	help
 	  Say Y here if you have a Fujitsu Lifebook T901 or P772 laptop
 	  (or perhaps others) and wish to use the extra scrolling devices.
-	  This is unrelated to touchpd support.
+	  This is unrelated to touchpad support.
 
 	  If unsure, say N.
 
@@ -402,6 +402,12 @@ config MOUSE_GPIO
 
 	  To compile this driver as a module, choose M here: the
 	  module will be called gpio_mouse.
+
+config MOUSE_PXA930_TRKBALL
+	tristate "PXA930 Trackball mouse"
+	depends on CPU_PXA930 || CPU_PXA935
+	help
+	  Say Y here to support PXA930 Trackball mouse.
 
 config MOUSE_MAPLE
 	tristate "Maple mouse (for the Dreamcast)"
