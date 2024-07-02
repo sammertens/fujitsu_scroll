@@ -24,15 +24,12 @@
 #ifdef CONFIG_MOUSE_PS2_FUJITSU_SCROLL
 
 static short fujitsu_capacitance = FJS_CAPACITANCE_THRESHOLD;
-static short fujitsu_threshold = FJS_POSITION_CHANGE_THRESHOLD;
-static short fujitsu_bitshift = FJS_MOVEMENT_BITSHIFT;
+static short fujitsu_speed = FJS_SPEED;
 
 module_param(fujitsu_capacitance, short, 0644);
 MODULE_PARM_DESC(fujitsu_capaciance, "Capacitance threshold");
-module_param(fujitsu_threshold, short, 0644);
-MODULE_PARM_DESC(fujitsu_threshold, "Change threshold");
-module_param(fujitsu_bitshift, short, 0644);
-MODULE_PARM_DESC(fujitsu_bitshift, "Movement bitshift (reducer)");
+module_param(fujitsu_speed, short, 0644);
+MODULE_PARM_DESC(fujitsu_speed, "Speed.");
 
 int fujitsu_scroll_detect(struct psmouse *psmouse, bool set_properties)
 {
@@ -81,7 +78,7 @@ int fujitsu_scroll_detect(struct psmouse *psmouse, bool set_properties)
 	return 0;
 }
 
-void fujitsu_scroll_init_sequence(struct psmouse *psmouse)
+static void fujitsu_scroll_init_sequence(struct psmouse *psmouse)
 {
 	struct ps2dev *ps2dev = &psmouse->ps2dev;
 	u8 param[4] = { 0 };
@@ -92,7 +89,7 @@ void fujitsu_scroll_init_sequence(struct psmouse *psmouse)
 	ps2_command(ps2dev, param, PSMOUSE_CMD_SETRATE);
 }
 
-int fujitsu_scroll_query_hardware(struct psmouse *psmouse)
+static int fujitsu_scroll_query_hardware(struct psmouse *psmouse)
 {
 	struct ps2dev *ps2dev = &psmouse->ps2dev;
 	struct fujitsu_scroll_data *priv = psmouse->private;
@@ -128,6 +125,8 @@ static void fujitsu_scroll_process_packet(struct psmouse *psmouse)
 	unsigned int position;
 
 	int movement;
+	int speed;
+	int roll;
 
 	position = ((psmouse->packet[1] & 0x0f) << 8) + psmouse->packet[2];
 	capacitance = psmouse->packet[0] & 0x3f;
@@ -157,16 +156,21 @@ static void fujitsu_scroll_process_packet(struct psmouse *psmouse)
 				movement = position - priv->last_event_position;
 			}
 
-			if (movement > fujitsu_threshold) {
-				input_report_rel(dev, priv->axis,
-						 -(movement >>
-						   fujitsu_bitshift));
-				priv->last_event_position = position;
-			} else if (movement < -fujitsu_threshold) {
-				input_report_rel(dev, priv->axis,
-						 ((-movement) >>
-						  fujitsu_bitshift));
-				priv->last_event_position = position;
+			priv->last_event_position = position;
+			priv->movement += movement;
+			
+			speed = fujitsu_speed;
+			if ( speed < 1 )
+			{ // not to divide by 0
+				speed = 1;
+			}
+			
+			roll = priv->movement / speed;
+			priv->movement -= roll * speed;
+			
+			if ( roll != 0 )
+			{
+				input_report_rel(dev, priv->axis, -roll);
 			}
 		}
 	} else if (priv->finger_down == 1) {

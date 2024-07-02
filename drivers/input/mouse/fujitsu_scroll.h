@@ -32,15 +32,12 @@
 #define FJS_SENSOR_AXIS                REL_HWHEEL
 
 /*
+ * Speed of scrolling.
+ * 1 is very fast, 4000 is very slow.
  * How much movement should occur to consider it an event
  * Movement is measured as a change in angle, which is 12 bits.
  */
-#define FJS_POSITION_CHANGE_THRESHOLD  0x04
-
-/*
- * How much the movement value should be bitshifted right
- */
-#define FJS_MOVEMENT_BITSHIFT          3
+#define FJS_SPEED           256
 
 /*
  * FJS_INIT_MODE - the mode byte to send to enable data packets
@@ -59,6 +56,7 @@ struct fujitsu_scroll_data {
 	unsigned int axis;
 	unsigned int last_event_position;
 	unsigned int finger_down:1;
+	int movement;
 };
 
 void fujitsu_scroll_module_init(void);
